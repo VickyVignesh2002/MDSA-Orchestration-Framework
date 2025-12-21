@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MDSA Dashboard - Welcome</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 MDSA Framework Dashboard</h1>
+        <p>Multi-Domain Specialized Agents - Monitoring & Control</p>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <h3>{{ stats.total_domains }}</h3>
+                <p>Registered Domains</p>
+            </div>
+            <div class="stat-card blue">
+                <h3>{{ stats.total_requests }}</h3>
+                <p>Total Requests</p>
+            </div>
+            <div class="stat-card orange">
+                <h3>{{ stats.active_models }}</h3>
+                <p>Active Models</p>
+            </div>
+            <div class="stat-card purple">
+                <h3>{{ stats.rag_documents }}</h3>
+                <p>RAG Documents</p>
+            </div>
+        </div>
+
+        <div class="nav">
+            <a href="/monitor">📊 Live Monitoring</a>
+            <a href="/docs">📖 API Documentation</a>
+            <a href="/api/health">🏥 Health Check</a>
+            <a href="/api/domains">🔍 View Domains</a>
+        </div>
+
+        <h2 style="color: #4CAF50; margin-top: 40px;">Registered Domains</h2>
+        <div class="domain-list">
+            {% for domain in domains %}
+            <div class="domain-item">
+                <h3>{{ domain.name }}</h3>
+                <p><strong>ID:</strong> {{ domain.id }}</p>
+                <p><strong>Model:</strong> {{ domain.model }}</p>
+                <div class="keywords">
+                    {% for keyword in domain.keywords[:5] %}
+                    <span class="keyword">{{ keyword }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <h2 style="color: #4CAF50; margin-top: 40px;">Features</h2>
+        <ul style="color: #ccc; line-height: 2;">
+            <li>✅ TinyBERT Router with keyword fallback</li>
+            <li>✅ {{ stats.total_domains }} Specialized Domains</li>
+            <li>✅ DualRAG (Global + Local knowledge)</li>
+            <li>✅ Hybrid Orchestration (TinyBERT + Phi-2)</li>
+            <li>✅ Real-time monitoring via WebSocket & D3.js visualizations</li>
+        </ul>
+
+        <div class="nav" style="margin-top: 40px;">
+            <a href="/monitor">🎨 View Interactive Visualizations →</a>
+        </div>
+    </div>
+</body>
+</html>

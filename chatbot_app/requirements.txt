@@ -1,0 +1,25 @@
+# MDSA Chatbot Requirements (All Free & Open Source)
+
+# Core MDSA framework
+-e ..
+
+# RAG Dependencies
+chromadb>=0.4.0  # Free, open-source vector database
+sentence-transformers>=2.2.0  # Free embeddings
+langchain>=0.1.0  # Optional, for RAG chains
+pypdf2>=3.0.0  # PDF processing
+python-docx>=1.0.0  # Word document processing
+
+# Dashboard & Monitoring
+streamlit>=1.28.0  # Free, open-source dashboard
+plotly>=5.17.0  # Free, open-source visualization
+pandas>=2.0.0  # Data manipulation
+
+# Tool Calling
+requests>=2.31.0  # HTTP requests
+beautifulsoup4>=4.12.0  # Web scraping
+python-dateutil>=2.8.2  # Date utilities
+
+# Utilities
+tqdm>=4.66.0  # Progress bars
+colorama>=0.4.6  # Colored terminal output

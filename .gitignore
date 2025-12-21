@@ -1,0 +1,256 @@
+# MDSA Framework .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Distribution / packaging
+.Python
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PyInstaller
+*.spec
+
+# Unit test / coverage reports
+nosetests.xml
+
+# Sphinx documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.env.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# MDSA-Specific
+# Model cache directory
+.mdsa/
+*.mdsa/
+
+# Downloaded models
+models/downloaded/
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+
+# RAG vector stores
+rag_stores/
+*.chroma/
+chroma_db/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Configuration overrides (but keep templates)
+configs/local_*.yaml
+configs/override_*.yaml
+!configs/templates/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS-specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.Spotlight-V100
+.Trashes
+
+# Large files (use Git LFS if needed)
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.joblib
+
+# Secrets & credentials
+secrets/
+credentials/
+*.key
+*.pem
+*.crt
+api_keys.txt
+
+# Monitoring data
+prometheus_data/
+grafana_data/
+
+# Build artifacts
+*.whl
+*.tar.gz
+
+# Editor backups
+*~
+*.bak
+*.backup
+
+# Claude plans (keep .claude docs, ignore user-specific plans)
+# Keep .claude/*.md (documentation)
+# Ignore user-specific plan files
+
+# ============================================
+# ADDITIONAL EXCLUSIONS FOR GITHUB PUSH
+# ============================================
+
+# Nested Virtual Environments (CRITICAL - these are huge!)
+**/.venv/
+**/venv/
+**/env/
+**/ENV/
+chatbot_app/.venv/
+chatbot_app/medical_app/.venv/
+
+# Nested ChromaDB directories
+**/chroma_db/
+
+# Dashboard output files (session data)
+dashboard_output/
+**/dashboard_output/
+session_*.json
+session_*.html
+
+# Test output files
+test_results.json
+chatbot_metrics.json
+**/chatbot_metrics.json
+
+# Coverage files (already have some, adding more)
+coverage.xml
+
+# Egg-info directories
+mdsa_framework.egg-info/
+
+# Windows artifacts
+nul
+
+# User data (contains credentials)
+mdsa/ui/users.json
+
+# HTML coverage reports
+htmlcov/
+**/htmlcov/
+
+# Pytest cache
+.pytest_cache/
+**/.pytest_cache/
+
+# Knowledge base data (auto-generated embeddings)
+chatbot_app/knowledge_base/
+**/knowledge_base/
+
+# ONNX models
+*.onnx
+
+# Model files that might be large
+*.gguf
+*.ggml
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
