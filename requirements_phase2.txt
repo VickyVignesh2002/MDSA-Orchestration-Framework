@@ -1,0 +1,13 @@
+# Phase 2 Additional Dependencies
+# Add these to your existing installation
+
+# Authentication
+pyjwt>=2.8.0  # JWT token generation and validation
+
+# Encryption
+cryptography>=41.0.0  # AES-256 encryption for API keys
+
+# Already included in main requirements:
+# requests>=2.31.0  # HTTP requests (for API calls)
+# fastapi  # Web framework
+# uvicorn  # ASGI server

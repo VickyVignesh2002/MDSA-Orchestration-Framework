@@ -21,6 +21,20 @@ function createSankeyDiagram(containerId, data) {
     // Clear previous content
     container.html("");
 
+    // Check for empty data
+    if (!data || !data.domains || data.domains.length === 0 || !data.total_requests || data.total_requests === 0) {
+        container.html(`
+            <div style="text-align: center; padding: 100px 20px; color: #888;">
+                <p style="font-size: 18px; margin-bottom: 15px;">📊 No query data yet</p>
+                <p style="font-size: 14px; margin-bottom: 20px;">Process some queries or generate demo data to see the routing flow</p>
+                <button onclick="generateDemoData()" style="background: linear-gradient(135deg, #4CAF50, #45a049); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: transform 0.2s;">
+                    🎲 Generate Demo Data
+                </button>
+            </div>
+        `);
+        return;
+    }
+
     const svg = container.append("svg")
         .attr("width", width)
         .attr("height", height);
@@ -135,6 +149,17 @@ function createLatencyHeatmap(containerId, data) {
 
     container.html("");
 
+    // Check for empty data
+    if (!data || !data.latencies || data.latencies.length === 0 || !data.domains || data.domains.length === 0) {
+        container.html(`
+            <div style="text-align: center; padding: 80px 20px; color: #888;">
+                <p style="font-size: 16px; margin-bottom: 10px;">🌡️ No latency data available</p>
+                <p style="font-size: 13px;">Start processing queries to see domain latency heatmap</p>
+            </div>
+        `);
+        return;
+    }
+
     const svg = container.append("svg")
         .attr("width", width)
         .attr("height", height);
@@ -157,8 +182,11 @@ function createLatencyHeatmap(containerId, data) {
         .range([0, chartHeight])
         .padding(0.05);
 
+    // Safe max calculation
+    const maxLatency = d3.max(data.latencies.flat()) || 100;
+
     const colorScale = d3.scaleSequential()
-        .domain([0, d3.max(data.latencies.flat())])
+        .domain([0, maxLatency])
         .interpolator(d3.interpolateRdYlGn);
 
     // Draw cells
@@ -218,6 +246,17 @@ function createRAGChart(containerId, data) {
     const height = 300;
 
     container.html("");
+
+    // Check for empty data
+    if (!data || ((!data.global_docs || data.global_docs === 0) && (!data.local_docs || Object.keys(data.local_docs).length === 0))) {
+        container.html(`
+            <div style="text-align: center; padding: 80px 20px; color: #888;">
+                <p style="font-size: 16px; margin-bottom: 10px;">📚 No RAG documents yet</p>
+                <p style="font-size: 13px;">Upload documents to see distribution across global and local RAG</p>
+            </div>
+        `);
+        return;
+    }
 
     const svg = container.append("svg")
         .attr("width", width)
@@ -316,6 +355,16 @@ function createTimelineChart(containerId, data) {
 
     container.html("");
 
+    // Check for empty data
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        container.html(`
+            <div style="text-align: center; padding: 60px 20px; color: #888;">
+                <p style="font-size: 14px;">⏱️ No request timeline data</p>
+            </div>
+        `);
+        return;
+    }
+
     const svg = container.append("svg")
         .attr("width", width)
         .attr("height", height);
@@ -400,6 +449,17 @@ function createDomainPieChart(containerId, data) {
     const height = 300;
 
     container.html("");
+
+    // Check for empty data
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        container.html(`
+            <div style="text-align: center; padding: 80px 20px; color: #888;">
+                <p style="font-size: 16px; margin-bottom: 10px;">🥧 No domain request data</p>
+                <p style="font-size: 13px;">Process queries to see distribution across domains</p>
+            </div>
+        `);
+        return;
+    }
 
     const svg = container.append("svg")
         .attr("width", width)
@@ -532,6 +592,39 @@ async function initializeDashboard() {
         console.error('Error loading dashboard data:', error);
     }
 }
+
+// Generate demo data for testing visualizations
+async function generateDemoData() {
+    try {
+        console.log('Generating demo data...');
+
+        const response = await fetch('/api/admin/generate-demo-data', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            console.log(`Demo data generated: ${result.generated} samples`);
+
+            // Show success message
+            alert(`✅ Generated ${result.generated} sample queries! Charts will refresh in a moment.`);
+
+            // Reload charts immediately
+            await initializeDashboard();
+        } else {
+            console.error('Error generating demo data:', result);
+            alert(`❌ Error: ${result.detail || 'Failed to generate demo data'}`);
+        }
+    } catch (error) {
+        console.error('Error generating demo data:', error);
+        alert(`❌ Error generating demo data: ${error.message}`);
+    }
+}
+
+// Initialize dashboard on page load
+initializeDashboard();
 
 // Auto-refresh every 30 seconds
 setInterval(initializeDashboard, 30000);

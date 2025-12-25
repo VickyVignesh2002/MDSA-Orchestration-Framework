@@ -11,8 +11,12 @@
         <h1>📊 MDSA Real-Time Monitoring <span id="status"></span></h1>
         <p>Live metrics and interactive visualizations</p>
         <div class="nav" style="margin-top: 15px;">
-            <a href="/welcome" style="color: #4CAF50; text-decoration: none;">← Back to Welcome</a>
-            <a href="/docs" style="color: #4CAF50; text-decoration: none; margin-left: 20px;">API Docs</a>
+            <a href="/welcome">🏠 Home</a>
+            <a href="/admin/rag">📤 RAG Management</a>
+            <a href="/admin/models">🔧 Model Configuration</a>
+            <a href="/admin/tools">🛠️ Tools</a>
+            <a href="/domains">🎯 Domains</a>
+            <a href="/admin/monitor" class="active">📊 Monitor</a>
         </div>
     </div>
 
@@ -64,8 +68,9 @@
     <script src="/static/js/visualizations.js"></script>
 
     <script>
-        // WebSocket connection for real-time updates
-        const ws = new WebSocket('ws://localhost:5000/ws/metrics');
+        // WebSocket connection for real-time updates from MDSA Dashboard (dynamic port)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}/ws/metrics`);
 
         ws.onopen = () => {
             console.log('WebSocket connected');
@@ -102,7 +107,7 @@
                     <p>Recent Requests</p>
                 </div>
                 <div class="stat-card purple">
-                    <h3>${data.rag && data.rag.global_rag ? data.rag.global_rag.document_count : 0}</h3>
+                    <h3>${data.rag ? data.rag.total_documents || data.rag.global_documents || 0 : 0}</h3>
                     <p>RAG Documents</p>
                 </div>
             `;

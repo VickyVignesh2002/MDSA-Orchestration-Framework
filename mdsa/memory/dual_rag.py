@@ -18,9 +18,32 @@ Date: 2025-12-05
 import logging
 from typing import Dict, List, Optional, Any, Set
 from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
 import time
 import hashlib
 import json
+import uuid
+
+# ChromaDB and embeddings
+try:
+    import chromadb
+    from chromadb.config import Settings
+    from sentence_transformers import SentenceTransformer
+    CHROMADB_AVAILABLE = True
+except ImportError:
+    CHROMADB_AVAILABLE = False
+    chromadb = None
+    SentenceTransformer = None
+
+# Platform detection
+try:
+    from mdsa.config.platform_detector import get_vector_db_path, detect_platform_kb_path
+    PLATFORM_DETECTOR_AVAILABLE = True
+except ImportError:
+    PLATFORM_DETECTOR_AVAILABLE = False
+    get_vector_db_path = None
+    detect_platform_kb_path = None
 
 logger = logging.getLogger(__name__)
 
@@ -474,7 +497,7 @@ class DualRAG:
 
     def __init__(self, max_global_docs: int = 10000, max_local_docs: int = 1000):
         """
-        Initialize Dual RAG system.
+        Initialize Dual RAG system with ChromaDB persistence.
 
         Args:
             max_global_docs: Maximum documents in GlobalRAG
@@ -483,6 +506,50 @@ class DualRAG:
         self.global_rag = GlobalRAG(max_documents=max_global_docs)
         self.local_rags: Dict[str, LocalRAG] = {}
         self.max_local_docs = max_local_docs
+
+        # ChromaDB persistence
+        self.chroma_client = None
+        self.global_collection = None
+        self.local_collections: Dict[str, Any] = {}
+        self.embedding_model = None
+        self.vector_db_path = None
+
+        # Initialize ChromaDB if available
+        if CHROMADB_AVAILABLE and PLATFORM_DETECTOR_AVAILABLE:
+            try:
+                self.vector_db_path = get_vector_db_path()
+                self.chroma_client = chromadb.PersistentClient(
+                    path=str(self.vector_db_path),
+                    settings=Settings(anonymized_telemetry=False)
+                )
+
+                # Global collection
+                self.global_collection = self.chroma_client.get_or_create_collection(
+                    name="global_rag",
+                    metadata={"description": "Global RAG documents (shared knowledge)"}
+                )
+
+                # Initialize embedding model
+                self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+
+                logger.info(f"[RAG] ChromaDB initialized at: {self.vector_db_path}")
+                logger.info(f"[RAG] Embedding model loaded: all-MiniLM-L6-v2")
+
+                # Load existing documents from disk
+                self._load_from_disk()
+
+            except Exception as e:
+                logger.warning(f"[RAG] ChromaDB initialization failed: {e}")
+                logger.warning("[RAG] Falling back to in-memory RAG only")
+                self.chroma_client = None
+        else:
+            missing = []
+            if not CHROMADB_AVAILABLE:
+                missing.append("chromadb, sentence-transformers")
+            if not PLATFORM_DETECTOR_AVAILABLE:
+                missing.append("platform_detector")
+            logger.warning(f"[RAG] Missing dependencies: {', '.join(missing)}")
+            logger.warning("[RAG] Using in-memory RAG only (no persistence)")
 
         logger.info("DualRAG system initialized")
 
@@ -514,7 +581,7 @@ class DualRAG:
         doc_id: Optional[str] = None
     ) -> str:
         """
-        Add document to domain's LocalRAG.
+        Add document to domain's LocalRAG with ChromaDB persistence.
 
         Args:
             domain_id: Domain identifier
@@ -531,7 +598,45 @@ class DualRAG:
         if domain_id not in self.local_rags:
             raise ValueError(f"Domain '{domain_id}' not registered. Call register_domain() first.")
 
-        return self.local_rags[domain_id].add_document(content, metadata, doc_id)
+        # Add to in-memory LocalRAG
+        doc_id = self.local_rags[domain_id].add_document(content, metadata, doc_id)
+
+        # Persist to ChromaDB if available
+        if self.chroma_client and self.embedding_model:
+            try:
+                # Get or create collection for this domain
+                collection_name = f"local_rag_{domain_id}"
+                if domain_id not in self.local_collections:
+                    self.local_collections[domain_id] = self.chroma_client.get_or_create_collection(
+                        name=collection_name,
+                        metadata={"domain": domain_id, "description": f"Local RAG for {domain_id}"}
+                    )
+
+                # Generate embedding
+                embedding = self.embedding_model.encode(content).tolist()
+
+                # Prepare metadata
+                chroma_metadata = metadata.copy() if metadata else {}
+                chroma_metadata['domain'] = domain_id
+                chroma_metadata['timestamp'] = datetime.now().isoformat()
+
+                # Convert all metadata values to strings
+                chroma_metadata = {k: str(v) for k, v in chroma_metadata.items()}
+
+                # Add to ChromaDB
+                self.local_collections[domain_id].add(
+                    ids=[doc_id],
+                    documents=[content],
+                    metadatas=[chroma_metadata],
+                    embeddings=[embedding]
+                )
+
+                logger.debug(f"[RAG] Persisted local document {doc_id} to ChromaDB (domain: {domain_id})")
+
+            except Exception as e:
+                logger.error(f"[RAG] Failed to persist local document to ChromaDB: {e}")
+
+        return doc_id
 
     def add_to_global(
         self,
@@ -541,7 +646,7 @@ class DualRAG:
         tags: Optional[List[str]] = None
     ) -> str:
         """
-        Add document to GlobalRAG (accessible by all domains).
+        Add document to GlobalRAG (accessible by all domains) with ChromaDB persistence.
 
         Args:
             content: Document content
@@ -552,7 +657,38 @@ class DualRAG:
         Returns:
             Document ID
         """
-        return self.global_rag.add_document(content, metadata, doc_id, tags)
+        # Add to in-memory GlobalRAG
+        doc_id = self.global_rag.add_document(content, metadata, doc_id, tags)
+
+        # Persist to ChromaDB if available
+        if self.chroma_client and self.global_collection and self.embedding_model:
+            try:
+                # Generate embedding
+                embedding = self.embedding_model.encode(content).tolist()
+
+                # Prepare metadata (ChromaDB requires dict with string values)
+                chroma_metadata = metadata.copy() if metadata else {}
+                if tags:
+                    chroma_metadata['tags'] = ','.join(tags)
+                chroma_metadata['timestamp'] = datetime.now().isoformat()
+
+                # Convert all metadata values to strings for ChromaDB
+                chroma_metadata = {k: str(v) for k, v in chroma_metadata.items()}
+
+                # Add to ChromaDB
+                self.global_collection.add(
+                    ids=[doc_id],
+                    documents=[content],
+                    metadatas=[chroma_metadata],
+                    embeddings=[embedding]
+                )
+
+                logger.debug(f"[RAG] Persisted global document {doc_id} to ChromaDB")
+
+            except Exception as e:
+                logger.error(f"[RAG] Failed to persist document to ChromaDB: {e}")
+
+        return doc_id
 
     def retrieve(
         self,
@@ -564,7 +700,10 @@ class DualRAG:
         metadata_filter: Optional[Dict[str, Any]] = None
     ) -> Dict[str, RAGResult]:
         """
-        Retrieve from both Local and Global RAG.
+        Retrieve from both Local and Global RAG using embedding-based similarity search.
+
+        If ChromaDB is available, uses vector similarity search.
+        Otherwise, falls back to keyword-based search.
 
         Args:
             query: Search query
@@ -581,26 +720,136 @@ class DualRAG:
             ValueError: If domain not registered and search_local=True
         """
         results = {}
+        start_time = time.time()
+
+        # Use ChromaDB if available, otherwise fallback to keyword search
+        use_chromadb = self.chroma_client and self.embedding_model
 
         # Search LocalRAG (domain-specific)
         if search_local:
             if domain_id not in self.local_rags:
                 raise ValueError(f"Domain '{domain_id}' not registered")
 
-            results['local'] = self.local_rags[domain_id].retrieve(
-                query=query,
-                top_k=top_k,
-                metadata_filter=metadata_filter
-            )
+            if use_chromadb and domain_id in self.local_collections:
+                # Use ChromaDB embedding-based search
+                try:
+                    query_embedding = self.embedding_model.encode(query).tolist()
+
+                    # Prepare where filter if metadata_filter provided
+                    where_filter = None
+                    if metadata_filter:
+                        where_filter = {k: {"$eq": str(v)} for k, v in metadata_filter.items()}
+
+                    chroma_results = self.local_collections[domain_id].query(
+                        query_embeddings=[query_embedding],
+                        n_results=top_k,
+                        where=where_filter
+                    )
+
+                    # Convert to RAGResult format
+                    documents = []
+                    scores = []
+                    if chroma_results['ids'] and chroma_results['ids'][0]:
+                        for i, doc_id in enumerate(chroma_results['ids'][0]):
+                            doc = RAGDocument(
+                                doc_id=doc_id,
+                                content=chroma_results['documents'][0][i],
+                                metadata=chroma_results['metadatas'][0][i],
+                                timestamp=time.time()
+                            )
+                            documents.append(doc)
+                            # Convert distance to score (lower distance = higher score)
+                            distance = chroma_results['distances'][0][i]
+                            scores.append(1.0 / (1.0 + distance))
+
+                    retrieval_time_ms = (time.time() - start_time) * 1000
+                    results['local'] = RAGResult(
+                        documents=documents,
+                        scores=scores,
+                        query=query,
+                        retrieval_time_ms=retrieval_time_ms,
+                        source='local'
+                    )
+
+                    logger.debug(f"[RAG] ChromaDB local search: {len(documents)} docs in {retrieval_time_ms:.1f}ms")
+
+                except Exception as e:
+                    logger.error(f"[RAG] ChromaDB local search failed: {e}, falling back to keyword search")
+                    # Fallback to keyword search
+                    results['local'] = self.local_rags[domain_id].retrieve(
+                        query=query,
+                        top_k=top_k,
+                        metadata_filter=metadata_filter
+                    )
+            else:
+                # Fallback to keyword-based search
+                results['local'] = self.local_rags[domain_id].retrieve(
+                    query=query,
+                    top_k=top_k,
+                    metadata_filter=metadata_filter
+                )
 
         # Search GlobalRAG (shared)
         if search_global:
-            results['global'] = self.global_rag.retrieve(
-                query=query,
-                top_k=top_k,
-                metadata_filter=metadata_filter,
-                requesting_domain=domain_id
-            )
+            if use_chromadb and self.global_collection:
+                # Use ChromaDB embedding-based search
+                try:
+                    query_embedding = self.embedding_model.encode(query).tolist()
+
+                    # Prepare where filter
+                    where_filter = None
+                    if metadata_filter:
+                        where_filter = {k: {"$eq": str(v)} for k, v in metadata_filter.items()}
+
+                    chroma_results = self.global_collection.query(
+                        query_embeddings=[query_embedding],
+                        n_results=top_k,
+                        where=where_filter
+                    )
+
+                    # Convert to RAGResult format
+                    documents = []
+                    scores = []
+                    if chroma_results['ids'] and chroma_results['ids'][0]:
+                        for i, doc_id in enumerate(chroma_results['ids'][0]):
+                            doc = RAGDocument(
+                                doc_id=doc_id,
+                                content=chroma_results['documents'][0][i],
+                                metadata=chroma_results['metadatas'][0][i],
+                                timestamp=time.time()
+                            )
+                            documents.append(doc)
+                            distance = chroma_results['distances'][0][i]
+                            scores.append(1.0 / (1.0 + distance))
+
+                    retrieval_time_ms = (time.time() - start_time) * 1000
+                    results['global'] = RAGResult(
+                        documents=documents,
+                        scores=scores,
+                        query=query,
+                        retrieval_time_ms=retrieval_time_ms,
+                        source='global'
+                    )
+
+                    logger.debug(f"[RAG] ChromaDB global search: {len(documents)} docs in {retrieval_time_ms:.1f}ms")
+
+                except Exception as e:
+                    logger.error(f"[RAG] ChromaDB global search failed: {e}, falling back to keyword search")
+                    # Fallback to keyword search
+                    results['global'] = self.global_rag.retrieve(
+                        query=query,
+                        top_k=top_k,
+                        metadata_filter=metadata_filter,
+                        requesting_domain=domain_id
+                    )
+            else:
+                # Fallback to keyword-based search
+                results['global'] = self.global_rag.retrieve(
+                    query=query,
+                    top_k=top_k,
+                    metadata_filter=metadata_filter,
+                    requesting_domain=domain_id
+                )
 
         return results
 
@@ -611,6 +860,82 @@ class DualRAG:
     def get_global_rag(self) -> GlobalRAG:
         """Get GlobalRAG (for direct access)"""
         return self.global_rag
+
+    def _load_from_disk(self):
+        """
+        Load existing documents from ChromaDB into memory on startup.
+
+        This restores all global and local RAG documents that were persisted.
+        """
+        if not self.chroma_client:
+            return
+
+        try:
+            # Load global documents
+            if self.global_collection:
+                global_data = self.global_collection.get()
+                loaded_global = 0
+
+                if global_data['ids']:
+                    for i, doc_id in enumerate(global_data['ids']):
+                        content = global_data['documents'][i]
+                        metadata = global_data['metadatas'][i]
+
+                        # Add to in-memory GlobalRAG (skip ChromaDB persistence)
+                        self.global_rag._documents[doc_id] = RAGDocument(
+                            doc_id=doc_id,
+                            content=content,
+                            metadata=metadata,
+                            timestamp=time.time()
+                        )
+                        # Index for keyword search
+                        self.global_rag._index_document(self.global_rag._documents[doc_id])
+                        loaded_global += 1
+
+                logger.info(f"[RAG] Loaded {loaded_global} documents from global collection")
+
+            # Load local collections
+            all_collections = self.chroma_client.list_collections()
+            loaded_local = 0
+
+            for collection in all_collections:
+                if collection.name.startswith('local_rag_'):
+                    domain_id = collection.name.replace('local_rag_', '')
+
+                    # Register domain if not already registered
+                    if domain_id not in self.local_rags:
+                        self.register_domain(domain_id)
+
+                    # Store collection reference
+                    self.local_collections[domain_id] = collection
+
+                    # Load documents
+                    local_data = collection.get()
+                    if local_data and local_data.get('ids'):
+                        for i, doc_id in enumerate(local_data['ids']):
+                            content = local_data['documents'][i]
+                            metadata = local_data['metadatas'][i]
+
+                            # Add to in-memory LocalRAG (skip ChromaDB persistence)
+                            self.local_rags[domain_id]._documents[doc_id] = RAGDocument(
+                                doc_id=doc_id,
+                                content=content,
+                                metadata=metadata,
+                                timestamp=time.time()
+                            )
+                            # Index for keyword search
+                            self.local_rags[domain_id]._index_document(
+                                self.local_rags[domain_id]._documents[doc_id]
+                            )
+                            loaded_local += 1
+
+                        logger.info(f"[RAG] Loaded {len(local_data['ids'])} documents from local collection '{domain_id}'")
+
+            if loaded_local > 0:
+                logger.info(f"[RAG] Total local documents loaded: {loaded_local}")
+
+        except Exception as e:
+            logger.error(f"[RAG] Failed to load documents from disk: {e}")
 
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive statistics"""

@@ -1,6 +1,11 @@
-# MDSA Framework .gitignore
+# ============================================
+# MDSA Framework - GitHub Publication .gitignore
+# Version: 1.0.0
+# ============================================
 
+# ====================
 # Python
+# ====================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -24,13 +29,21 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# ====================
 # Virtual Environments
+# ====================
 venv/
 ENV/
 env/
 .venv/
+**/.venv/
+**/venv/
+**/env/
+**/ENV/
 
+# ====================
 # IDEs
+# ====================
 .vscode/
 .idea/
 *.swp
@@ -38,137 +51,54 @@ env/
 *~
 .DS_Store
 
+# ====================
 # Testing
+# ====================
 .pytest_cache/
+**/.pytest_cache/
 .coverage
 htmlcov/
+**/ htmlcov/
 .tox/
 .nox/
 coverage.xml
 *.cover
 .hypothesis/
 
-# Type checking
+# Test Output Files
+test_results.json
+chatbot_metrics.json
+**/chatbot_metrics.json
+session_*.json
+session_*.html
+
+# ====================
+# Type Checking
+# ====================
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pyre/
 .pytype/
 
+# ====================
 # Jupyter Notebook
+# ====================
 .ipynb_checkpoints
 
-# Distribution / packaging
-.Python
-*.manifest
-*.spec
-pip-log.txt
-pip-delete-this-directory.txt
-
-# PyInstaller
-*.spec
-
-# Unit test / coverage reports
-nosetests.xml
-
-# Sphinx documentation
-docs/_build/
-docs/_static/
-docs/_templates/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# celery beat schedule file
-celerybeat-schedule
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.env.local
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# MDSA-Specific
-# Model cache directory
-.mdsa/
-*.mdsa/
-
-# Downloaded models
-models/downloaded/
-*.bin
-*.safetensors
-*.pt
-*.pth
-*.ckpt
-
-# RAG vector stores
-rag_stores/
-*.chroma/
-chroma_db/
-
+# ====================
 # Logs
+# ====================
 *.log
 logs/
 *.log.*
 
-# Configuration overrides (but keep templates)
-configs/local_*.yaml
-configs/override_*.yaml
-!configs/templates/
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-# OS-specific
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-.Spotlight-V100
-.Trashes
-
-# Large files (use Git LFS if needed)
-*.h5
-*.hdf5
-*.pkl
-*.pickle
-*.joblib
-
-# Secrets & credentials
+# ====================
+# Environment & Secrets
+# ====================
+.env
+.env.local
+.env.*.local
 secrets/
 credentials/
 *.key
@@ -176,81 +106,189 @@ credentials/
 *.crt
 api_keys.txt
 
-# Monitoring data
+# Keep .env.example files (templates)
+!.env.example
+!**/.env.example
+
+# ====================
+# Claude AI Assistant
+# ====================
+.claude/
+**/.claude/
+
+# ====================
+# MDSA-Specific
+# ====================
+
+# Model Cache & Downloaded Models
+.mdsa/
+*.mdsa/
+models/downloaded/
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.gguf
+*.ggml
+*.h5
+*.hdf5
+
+# RAG Vector Stores
+rag_stores/
+*.chroma/
+chroma_db/
+**/chroma_db/
+vector_db/
+**/vector_db/
+
+# Knowledge Base Data (auto-generated embeddings)
+chatbot_app/knowledge_base/
+**/knowledge_base/chroma_db/
+examples/*/knowledge_base/chroma_db/
+
+# Configuration Overrides (keep templates)
+configs/local_*.yaml
+configs/override_*.yaml
+!configs/templates/
+
+# Dashboard Data
+dashboard_output/
+**/dashboard_output/
+mdsa/ui/users.json
+
+# Monitoring Data
 prometheus_data/
 grafana_data/
 
-# Build artifacts
+# ====================
+# Development & Archive Files
+# ====================
+
+# Archive Directory (development logs)
+archive/
+
+# Legacy Chatbot Application (moved to examples/)
+chatbot_app/
+
+# Manual Test Files (keep only test_all_fixes.py)
+test_*.py
+!test_all_fixes.py
+!tests/test_*.py
+manual_test*.py
+test_chatbot.py
+test_cloud*.py
+test_concurrent*.py
+test_gpt*.py
+test_integration_phase*.py
+test_mdsa_comprehensive.py
+test_memory_stress.py
+test_ollama*.py
+test_phase*.py
+test_rag*.py
+test_ui_manual.py
+
+# Development Documentation (keep only production docs)
+**/PHASE_*.md
+**/SESSION_*.md
+**/BUGS_*.md
+**/CRITICAL_*.md
+**/FIXES_*.md
+**/COMPLETE_*.md
+**/IMPLEMENTATION_*.md
+**/MANUAL_*.md
+**/TEST_*.md
+**/DASHBOARD_*.md
+**/DYNAMIC_*.md
+**/END_TO_END_*.md
+**/MODEL_*.md
+**/NEXT_STEPS_*.md
+**/PHI2_*.md
+**/PRODUCTION_MASTER_*.md
+**/PROJECT_*.md
+**/QUICK_START_*.md
+**/RAG_*.md
+**/RUN_*.md
+**/DEPLOYMENT_GUIDE_*.md
+**/PERFORMANCE_FIXES_*.md
+
+# Keep important documentation
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
+!LICENSE
+!RELEASE_*.md
+!docs/**/*.md
+!examples/**/*.md
+
+# ====================
+# Temporary Files
+# ====================
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# ====================
+# OS-Specific
+# ====================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.Spotlight-V100
+.Trashes
+nul
+
+# ====================
+# Database Files
+# ====================
+*.db
+*.sqlite
+*.sqlite3
+
+# ====================
+# Build Artifacts
+# ====================
 *.whl
 *.tar.gz
+*.pkl
+*.pickle
+*.joblib
 
-# Editor backups
+# ====================
+# Editor Backups
+# ====================
 *~
 *.bak
 *.backup
 
-# Claude plans (keep .claude docs, ignore user-specific plans)
-# Keep .claude/*.md (documentation)
-# Ignore user-specific plan files
+# ====================
+# Examples - Exclude Generated/Sensitive Files
+# ====================
+examples/*/.venv/
+examples/*/__pycache__/
+examples/*/knowledge_base/chroma_db/
+examples/*/*.log
+examples/*/.env
+examples/*/vector_db/
 
-# ============================================
-# ADDITIONAL EXCLUSIONS FOR GITHUB PUSH
-# ============================================
+# Keep example documentation and code
+!examples/*/README.md
+!examples/*/QUICKSTART.md
+!examples/*/DEPLOYMENT.md
+!examples/*/.env.example
+!examples/*/requirements.txt
+!examples/*/app/
+!examples/*/domains/
+!examples/*/workflows/
+!examples/*/knowledge_base/*.txt
+!examples/*/knowledge_base/*.md
+!examples/*/knowledge_base/*.pdf
 
-# Nested Virtual Environments (CRITICAL - these are huge!)
-**/.venv/
-**/venv/
-**/env/
-**/ENV/
-chatbot_app/.venv/
-chatbot_app/medical_app/.venv/
-
-# Nested ChromaDB directories
-**/chroma_db/
-
-# Dashboard output files (session data)
-dashboard_output/
-**/dashboard_output/
-session_*.json
-session_*.html
-
-# Test output files
-test_results.json
-chatbot_metrics.json
-**/chatbot_metrics.json
-
-# Coverage files (already have some, adding more)
-coverage.xml
-
-# Egg-info directories
-mdsa_framework.egg-info/
-
-# Windows artifacts
-nul
-
-# User data (contains credentials)
-mdsa/ui/users.json
-
-# HTML coverage reports
-htmlcov/
-**/htmlcov/
-
-# Pytest cache
-.pytest_cache/
-**/.pytest_cache/
-
-# Knowledge base data (auto-generated embeddings)
-chatbot_app/knowledge_base/
-**/knowledge_base/
-
-# ONNX models
-*.onnx
-
-# Model files that might be large
-*.gguf
-*.ggml
-
-# SQLite databases
-*.db
-*.sqlite
-*.sqlite3
+# ====================
+# Data Directory
+# ====================
+data/

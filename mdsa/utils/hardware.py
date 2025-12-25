@@ -71,8 +71,25 @@ class HardwareDetector:
     def _check_cuda(self) -> bool:
         """Check if CUDA is available."""
         if not TORCH_AVAILABLE:
+            logger.warning("PyTorch not installed - CUDA unavailable")
             return False
-        return torch.cuda.is_available()
+
+        cuda_available = torch.cuda.is_available()
+
+        if cuda_available:
+            device_count = torch.cuda.device_count()
+            logger.info(f"CUDA available: {device_count} device(s) detected")
+            for i in range(device_count):
+                device_name = torch.cuda.get_device_name(i)
+                logger.info(f"  Device {i}: {device_name}")
+
+            if hasattr(torch.version, 'cuda') and torch.version.cuda:
+                logger.info(f"  CUDA version: {torch.version.cuda}")
+        else:
+            logger.warning("CUDA not available - GPU acceleration disabled")
+            logger.warning("Check PyTorch installation: pip install torch --index-url https://download.pytorch.org/whl/cu121")
+
+        return cuda_available
 
     def _check_mps(self) -> bool:
         """Check if MPS (Apple Silicon) is available."""
@@ -147,11 +164,19 @@ class HardwareDetector:
             str: Device string ("cuda:0", "mps", or "cpu")
         """
         # Prefer CUDA GPU
-        if self.has_cuda and self._cuda_memory_gb() >= 3:
-            return "cuda:0"
+        if self.has_cuda:
+            cuda_vram = self._cuda_memory_gb()
+            logger.info(f"Tier 2 device selection: CUDA detected with {cuda_vram:.2f}GB VRAM")
+
+            if cuda_vram >= 3:
+                logger.info("Using CUDA GPU for Tier 2 (Phi-2 reasoning model)")
+                return "cuda:0"
+            else:
+                logger.warning(f"CUDA VRAM ({cuda_vram:.2f}GB) below 3GB threshold for Tier 2. Falling back to CPU.")
 
         # Fall back to MPS (Apple Silicon)
         if self.has_mps:
+            logger.info("Using MPS (Apple Silicon) for Tier 2")
             return "mps"
 
         # Final fallback to CPU (will be slower)
