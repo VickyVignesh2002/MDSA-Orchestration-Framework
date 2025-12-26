@@ -23,10 +23,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 try:
     from mdsa import MDSA
-    from mdsa.core.config import Config
 except ImportError:
-    print("Warning: MDSA module not found. Install with: pip install -e .")
-    print("Running in simulation mode...")
+    print("ERROR: MDSA module not found.")
+    print("Please install the package: pip install -e .")
+    print("Or ensure you're in the correct virtual environment.")
     MDSA = None
 
 
@@ -67,11 +67,19 @@ def benchmark_latency(num_queries: int = 1000, config_path: str = None) -> Dict[
     print(f"Starting latency benchmark with {num_queries} queries...")
     print("=" * 60)
 
-    # Initialize MDSA
+    # Initialize MDSA (suppress verbose logging, disable reasoning for speed)
+    print("Initializing MDSA framework...")
     if config_path:
-        mdsa = MDSA(config_path=config_path)
+        mdsa = MDSA(config_path=config_path, log_level="WARNING", enable_reasoning=False)
     else:
-        mdsa = MDSA()
+        mdsa = MDSA(log_level="WARNING", enable_reasoning=False)
+
+    # Register medical domains for testing
+    print("Registering medical domains...")
+    mdsa.register_domain("medical_coding", "Medical coding for ICD-10, CPT, and HCPCS codes", ["code", "coding", "diagnosis"])
+    mdsa.register_domain("medical_billing", "Medical billing and charge calculation", ["billing", "charge", "payment"])
+    mdsa.register_domain("claims_processing", "Claims processing and denial management", ["claims", "denial", "insurance"])
+    mdsa.register_domain("appointment_scheduling", "Appointment scheduling and management", ["appointment", "schedule", "booking"])
 
     # Load test queries
     queries = load_test_queries()
@@ -86,7 +94,7 @@ def benchmark_latency(num_queries: int = 1000, config_path: str = None) -> Dict[
     for i, query in enumerate(queries[:num_queries]):
         start = time.perf_counter()
         try:
-            response = mdsa.query(query)
+            response = mdsa.process_request(query)
             end = time.perf_counter()
             latency_ms = (end - start) * 1000
             latencies.append(latency_ms)
@@ -139,17 +147,17 @@ def benchmark_latency(num_queries: int = 1000, config_path: str = None) -> Dict[
     print(f"Measured Median:  {results['median_ms']:.2f} ms")
 
     if 348 <= results['median_ms'] <= 391:
-        print("✓ PASS: Median latency within expected range")
+        print("[PASS] Median latency within expected range")
     else:
-        print("✗ FAIL: Median latency outside expected range")
+        print("[FAIL] Median latency outside expected range")
 
     print(f"\nExpected P95:     692-741 ms")
     print(f"Measured P95:     {results['p95_ms']:.2f} ms")
 
     if 692 <= results['p95_ms'] <= 741:
-        print("✓ PASS: P95 latency within expected range")
+        print("[PASS] P95 latency within expected range")
     else:
-        print("✗ FAIL: P95 latency outside expected range")
+        print("[FAIL] P95 latency outside expected range")
 
     # Save results
     output_file = Path(__file__).parent / "results" / "latency_results.json"

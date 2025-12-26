@@ -110,10 +110,10 @@ def run_all_benchmarks(num_queries_latency: int = 1000,
             if benchmark_name == "latency":
                 print(f"  Median Latency: {benchmark_data['median_ms']:.2f} ms")
                 print(f"  P95 Latency: {benchmark_data['p95_ms']:.2f} ms")
-                print(f"  Validation: {'✓ PASS' if passed else '✗ FAIL'}")
+                print(f"  Validation: {'[PASS]' if passed else '[FAIL]'}")
             elif benchmark_name == "accuracy":
                 print(f"  Accuracy: {benchmark_data['accuracy_pct']:.2f}%")
-                print(f"  Validation: {'✓ PASS' if passed else '✗ FAIL'}")
+                print(f"  Validation: {'[PASS]' if passed else '[FAIL]'}")
         elif status == "failed":
             print(f"  Error: {benchmark_data.get('error', 'Unknown error')}")
         elif status == "not_implemented":

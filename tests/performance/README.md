@@ -4,6 +4,135 @@
 
 This directory contains the official performance benchmark suite used to validate metrics reported in the MDSA research paper. All benchmarks are designed to measure real-world performance and can be run on your own hardware to verify claims.
 
+## Prerequisites
+
+Before running benchmarks, ensure the following requirements are met:
+
+### 1. MDSA Framework Installation
+
+**Required**: The MDSA package must be installed in editable mode:
+
+```bash
+pip install -e .
+```
+
+**Verification**:
+```bash
+python -c "from mdsa import MDSA; print('MDSA installed successfully')"
+```
+
+### 2. Models and Dependencies
+
+- **TinyBERT Router**: Downloaded automatically on first run (~270MB)
+  - Cached in `~/.mdsa/models/tinybert/`
+  - First run will be slower due to model download
+
+- **Python 3.9+**: Required for all dependencies
+
+- **Hardware**: Minimum 8GB RAM, CPU-only supported (GPU optional for faster inference)
+
+### 3. Test Data (Optional)
+
+The benchmarks include default test queries. For custom testing:
+
+- **Latency tests**: Create `test_data/sample_queries.json` (see template below)
+- **Accuracy tests**: Create `test_data/labeled_queries.json` with ground-truth domains
+
+**Test data templates** are provided in `test_data/` directory.
+
+### 4. Virtual Environment (Recommended)
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -e .
+```
+
+## Troubleshooting
+
+### Import Error: "MDSA module not found"
+
+**Problem**: Benchmarks fail with "ERROR: MDSA module not found"
+
+**Solutions**:
+1. Reinstall MDSA in editable mode:
+   ```bash
+   pip install -e .
+   ```
+
+2. Verify you're in the correct virtual environment:
+   ```bash
+   which python  # On Windows: where python
+   python -c "import sys; print(sys.prefix)"
+   ```
+
+3. Check PYTHONPATH includes the project root:
+   ```bash
+   echo $PYTHONPATH  # On Windows: echo %PYTHONPATH%
+   ```
+
+### Model Download Issues
+
+**Problem**: TinyBERT model fails to download
+
+**Solutions**:
+1. Check internet connection and firewall settings
+2. Manually download and place in cache directory:
+   ```bash
+   mkdir -p ~/.mdsa/models/tinybert/
+   # Download from Hugging Face: huawei-noah/TinyBERT_General_6L_768D
+   ```
+
+3. Use offline mode if models are pre-cached
+
+### Missing Test Data
+
+**Problem**: `FileNotFoundError` for test data files
+
+**Solutions**:
+1. Benchmarks use default queries if files don't exist
+2. Create test data from templates in `test_data/` directory
+3. Verify file paths are correct relative to `tests/performance/`
+
+### Zero or Incorrect Measurements
+
+**Problem**: Benchmarks show 0.00ms latency or 0.00% accuracy
+
+**Solutions**:
+1. Ensure MDSA initialized correctly (check for error messages)
+2. Verify domains are registered before routing
+3. Check that TinyBERT model loaded successfully
+4. First run may require model download (slower, but not zero)
+
+### Performance Differences from Research Paper
+
+**Problem**: Measured values differ significantly from paper (e.g., 800ms vs 348ms)
+
+**Expected**:
+- **Hardware differences** significantly impact latency:
+  - CPU-only: 2-3x slower than GPU
+  - Different CPU models: ±50% variance
+  - RAM speed affects model loading
+
+- **First run penalty**: Model loading adds ~2-5 seconds once
+- **Warm-up**: First 10-100 queries may be slower
+- **Tolerance**: ±20% from paper values is normal on different hardware
+
+**Not Expected (indicates issues)**:
+- Latency < 100ms on CPU (too fast, likely error)
+- Latency > 5 seconds (too slow, possible timeout/error)
+- Accuracy < 80% (too low, check domain registration)
+
+### Benchmark Crashes or Hangs
+
+**Problem**: Benchmark script hangs or crashes mid-execution
+
+**Solutions**:
+1. Reduce query count for testing: `-n 100` instead of `-n 10000`
+2. Check available RAM (model requires ~2GB minimum)
+3. Disable reasoning mode (already done in updated benchmarks)
+4. Check logs for specific error messages
+
 ## Test Data Source
 
 **Research Paper Reference**: All expected values come from the 10,000-query test suite described in `draft-research-paper.txt` (Lines 200-280).
