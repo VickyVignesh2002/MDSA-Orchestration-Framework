@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Last Updated**: December 2025
 
-This FAQ addresses common questions about the MDSA (Multi-Domain Specialized Agents) Framework. For more detailed information, see our comprehensive documentation.
+This FAQ addresses common questions about the MDSA (Multi-Domain Specialized Agentic Orchestration) Framework. For more detailed information, see our comprehensive documentation.
 
 ---
 
@@ -25,7 +25,7 @@ This FAQ addresses common questions about the MDSA (Multi-Domain Specialized Age
 
 ### What is MDSA?
 
-MDSA (Multi-Domain Specialized Agents) is a high-performance framework for building AI applications that intelligently route queries to domain-specific models. It combines small language models (SLMs) for fast classification with specialized knowledge bases and models for accurate, domain-specific responses.
+MDSA (Multi-Domain Specialized Agentic Orchestration) is a high-performance framework for building AI applications that intelligently route queries to domain-specific models. It combines small language models (SLMs) for fast classification with specialized knowledge bases and models for accurate, domain-specific responses.
 
 **Key Features**:
 - 94.3% routing accuracy with TinyBERT (67M parameters)

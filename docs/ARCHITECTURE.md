@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0
 **Date**: 2025-12-06
-**Author**: MDSA Framework Team
+**Author**: Multi-Domain Specialized Agentic Orchestration Framework Team
 
 ---
 

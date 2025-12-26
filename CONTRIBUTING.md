@@ -1,6 +1,6 @@
 # Contributing to MDSA
 
-Thank you for your interest in contributing to the Multi-Domain Specialized Agents (MDSA) framework! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to the Multi-Domain Specialized Agentic Orchestration (MDSA) framework! This document provides guidelines for contributing to the project.
 
 ## Table of Contents
 

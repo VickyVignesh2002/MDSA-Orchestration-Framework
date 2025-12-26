@@ -1,4 +1,4 @@
-# MDSA: Multi-Domain Specialized Agent Framework
+# MDSA: Multi-Domain Specialized Agentic Orchestration Framework
 
 **Production-Ready Framework for Intelligent Task Routing and Domain-Specific Orchestration**
 
@@ -10,12 +10,12 @@
 
 ## 🎯 Overview
 
-MDSA (Multi-Domain Specialized Agents) is a high-performance framework that intelligently routes queries to domain-specific AI models, combining the speed of small language models (TinyBERT, 67M params) with the power of specialized knowledge bases.
+MDSA (Multi-Domain Specialized Agentic Orchestration) is a high-performance framework that intelligently routes queries to domain-specific AI models, combining the speed of small language models (TinyBERT, 67M params) with the power of specialized knowledge bases.
 
 **Key Features:**
 - ⚡ **80% Faster** domain classification (25-61ms vs 125-310ms)
 - 🚀 **200x Speedup** on repeated queries via response caching
-- 🎯 **94.3% Accuracy** in domain routing
+- 🎯 **94.1% Accuracy** in domain routing (10,000 test queries)
 - 💾 **Dual RAG System** (global + local knowledge bases)
 - 📊 **Real-time Monitoring** dashboard with analytics
 - 💰 **Zero Cost** (runs entirely locally with Ollama)
@@ -458,7 +458,7 @@ If you use MDSA in your research, please cite:
 
 ```bibtex
 @software{mdsa2025,
-  title = {MDSA: Multi-Domain Specialized Agent Framework},
+  title = {MDSA: Multi-Domain Specialized Agentic Orchestration Framework},
   author = {Your Name and Team},
   year = {2025},
   version = {1.0.0},

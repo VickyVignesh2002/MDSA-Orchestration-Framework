@@ -343,7 +343,7 @@ A sequence of steps to accomplish a complex task. MDSA workflows can involve mul
 | **KB** | Knowledge Base | Document collection for RAG |
 | **LLM** | Large Language Model | Neural network for language |
 | **MCP** | Model Context Protocol | Protocol for tool integration |
-| **MDSA** | Multi-Domain Specialized Agents | This framework |
+| **MDSA** | Multi-Domain Specialized Agentic Orchestration | This framework |
 | **NLP** | Natural Language Processing | Field of AI for language |
 | **RAG** | Retrieval-Augmented Generation | Technique combining retrieval + generation |
 | **REST** | Representational State Transfer | Web API architecture |

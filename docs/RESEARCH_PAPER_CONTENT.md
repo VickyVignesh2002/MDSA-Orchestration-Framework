@@ -1,5 +1,5 @@
 # MDSA Research Paper Content
-## Multi-Domain Specialized Agent Framework for Intelligent Task Routing and Orchestration
+## Multi-Domain Specialized Agentic Orchestration Framework for Intelligent Task Routing and Orchestration
 
 **Version:** 1.0.0
 **Date:** December 24, 2025
@@ -9,7 +9,7 @@
 
 ## Abstract
 
-General-purpose large language models (LLMs) often struggle with domain-specific tasks requiring specialized knowledge and efficient resource allocation. We present **MDSA (Multi-Domain Specialized Agents)**, a framework for intelligent query routing and domain-specific response generation that optimizes both accuracy and performance. MDSA uses TinyBERT (67M parameters) for fast domain classification (<50ms), a dual RAG system for context retrieval, and optional Phi-2 reasoning for complex queries. Through embedding caching and response memoization, our framework achieves 20-45% faster domain classification and 200x speedup on repeated queries. We demonstrate MDSA's effectiveness on medical diagnosis tasks, achieving high accuracy while maintaining sub-second latency. The framework is open-source and available via `pip install mdsa-framework`.
+General-purpose large language models (LLMs) often struggle with domain-specific tasks requiring specialized knowledge and efficient resource allocation. We present **MDSA (Multi-Domain Specialized Agentic Orchestration)**, a framework for intelligent query routing and domain-specific response generation that optimizes both accuracy and performance. MDSA uses TinyBERT (67M parameters) for fast domain classification (<50ms), a dual RAG system for context retrieval, and optional Phi-2 reasoning for complex queries. Through embedding caching and response memoization, our framework achieves 20-45% faster domain classification and 200x speedup on repeated queries. We demonstrate MDSA's effectiveness on medical diagnosis tasks, achieving high accuracy while maintaining sub-second latency. The framework is open-source and available via `pip install mdsa-framework`.
 
 **Keywords:** Multi-agent systems, domain routing, small language models, retrieval-augmented generation, performance optimization, TinyBERT
 

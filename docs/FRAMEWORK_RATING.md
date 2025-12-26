@@ -4,7 +4,7 @@
 **Last Updated**: December 2025
 **Overall Rating**: **8.7/10**
 
-This document provides a detailed 10-dimension evaluation of the MDSA (Multi-Domain Specialized Agents) Framework, including ratings, justifications, and comparisons with alternative frameworks.
+This document provides a detailed 10-dimension evaluation of the MDSA (Multi-Domain Specialized Agentic Orchestration) Framework, including ratings, justifications, and comparisons with alternative frameworks.
 
 ---
 

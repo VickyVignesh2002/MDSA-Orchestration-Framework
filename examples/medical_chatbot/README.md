@@ -2,7 +2,7 @@
 
 ## Overview
 
-This medical chatbot demonstrates the capabilities of the MDSA (Multi-Domain Specialized Agents) framework in a real-world healthcare scenario. It showcases domain-based routing, RAG-enhanced responses, and performance optimizations that make MDSA ideal for production medical applications.
+This medical chatbot demonstrates the capabilities of the MDSA (Multi-Domain Specialized Agentic Orchestration) framework in a real-world healthcare scenario. It showcases domain-based routing, RAG-enhanced responses, and performance optimizations that make MDSA ideal for production medical applications.
 
 **Key Highlights:**
 - 94.3% domain classification accuracy

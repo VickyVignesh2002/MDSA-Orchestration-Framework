@@ -1,6 +1,6 @@
 # MDSA Framework - Complete Reference
 
-**Multi-Domain Specialized Agents Orchestration Framework**
+**Multi-Domain Specialized Agentic Orchestration Framework**
 **Version**: 1.0.0
 **Date**: 2025-12-06
 
@@ -29,7 +29,7 @@
 
 ### What is MDSA?
 
-MDSA (Multi-Domain Specialized Agents) is a production-ready orchestration framework for deploying multiple specialized language models across different domains. It intelligently routes user queries to the most appropriate domain and model, enabling efficient, accurate responses.
+MDSA (Multi-Domain Specialized Agentic Orchestration) is a production-ready orchestration framework for deploying multiple specialized language models across different domains. It intelligently routes user queries to the most appropriate domain and model, enabling efficient, accurate responses.
 
 ### Key Features
 

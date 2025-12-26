@@ -1,7 +1,7 @@
 """
 MDSA Framework Monitoring Dashboard
 
-FastAPI-based real-time monitoring UI for MDSA framework.
+FastAPI-based real-time monitoring UI for Multi-Domain Specialized Agentic Orchestration framework.
 Provides visualization of domains, models, RAG, metrics, and request flows.
 
 Routes:
@@ -76,7 +76,7 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI
 app = FastAPI(
     title="MDSA Monitoring Dashboard",
-    description="Real-time monitoring and visualization for Multi-Domain Specialized Agents Framework",
+    description="Real-time monitoring and visualization for Multi-Domain Specialized Agentic Orchestration Framework",
     version="1.0.0"
 )
 

@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Last Updated**: December 2025
 
-Welcome to the MDSA (Multi-Domain Specialized Agents) Framework documentation. This guide will help you navigate our comprehensive documentation to find exactly what you need.
+Welcome to the MDSA (Multi-Domain Specialized Agentic Orchestration) Framework documentation. This guide will help you navigate our comprehensive documentation to find exactly what you need.
 
 ---
 

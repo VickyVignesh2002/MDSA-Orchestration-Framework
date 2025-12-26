@@ -8,7 +8,7 @@
 
 ## 🎉 Welcome to MDSA Framework v1.0.0!
 
-We're excited to announce the first public release of MDSA (Multi-Domain Specialized Agents), a high-performance framework for building domain-specific AI applications with intelligent routing and orchestration.
+We're excited to announce the first public release of MDSA (Multi-Domain Specialized Agentic Orchestration), a high-performance framework for building domain-specific AI applications with intelligent routing and orchestration.
 
 ---
 

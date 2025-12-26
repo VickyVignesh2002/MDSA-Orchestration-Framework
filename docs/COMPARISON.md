@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Last Updated**: December 2025
 
-This document provides a comprehensive comparison of MDSA (Multi-Domain Specialized Agents) with other popular agent orchestration frameworks: LangChain, AutoGen, and CrewAI.
+This document provides a comprehensive comparison of MDSA (Multi-Domain Specialized Agentic Orchestration) with other popular agent orchestration frameworks: LangChain, AutoGen, and CrewAI.
 
 ---
 
@@ -60,7 +60,7 @@ This document provides a comprehensive comparison of MDSA (Multi-Domain Speciali
 
 ## Framework Overview
 
-### MDSA (Multi-Domain Specialized Agents)
+### MDSA (Multi-Domain Specialized Agentic Orchestration)
 
 **Philosophy**: Domain specialization with hybrid orchestration
 
