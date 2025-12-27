@@ -18,6 +18,27 @@ from mdsa.utils.config_loader import ConfigLoader
 from mdsa.utils.hardware import HardwareDetector
 from mdsa.utils.logger import setup_logger
 
+# Phase 3: RAG and model integration
+try:
+    from mdsa.memory.dual_rag import DualRAG
+    DUAL_RAG_AVAILABLE = True
+except ImportError:
+    DUAL_RAG_AVAILABLE = False
+    DualRAG = None
+
+try:
+    from mdsa.integrations.adapters.ollama_adapter import (
+        load_ollama_model,
+        is_ollama_model,
+        OllamaConnectionError
+    )
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+    load_ollama_model = None
+    is_ollama_model = None
+    OllamaConnectionError = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,16 +64,20 @@ class TinyBERTOrchestrator:
         config_path: Optional[str] = None,
         log_level: str = "INFO",
         enable_reasoning: bool = True,
-        complexity_threshold: float = 0.3
+        complexity_threshold: float = 0.3,
+        enable_rag: bool = True,
+        ollama_base_url: str = "http://localhost:11434"
     ):
         """
-        Initialize orchestrator with hybrid routing support.
+        Initialize orchestrator with hybrid routing support and Phase 3 RAG integration.
 
         Args:
             config_path: Path to configuration file
             log_level: Logging level
             enable_reasoning: Enable Phi-2 reasoning for complex queries (default: True)
             complexity_threshold: Threshold for complexity detection (0.0-1.0, default: 0.3)
+            enable_rag: Enable RAG retrieval for context augmentation (default: True, Phase 3)
+            ollama_base_url: Ollama server URL (default: http://localhost:11434, Phase 3)
         """
         # Initialize logger
         self.logger = setup_logger('mdsa.orchestrator', level=log_level)
@@ -77,7 +102,33 @@ class TinyBERTOrchestrator:
         self.complexity_analyzer = ComplexityAnalyzer(complexity_threshold=complexity_threshold)
         self.reasoner = Phi2Reasoner() if enable_reasoning else None
 
-        # Domain registry (will be populated in Phase 4)
+        # Phase 3: RAG and model integration
+        self.enable_rag = enable_rag
+        self.ollama_base_url = ollama_base_url
+        self.dual_rag = None
+        self.domain_models = {}  # Maps domain_id -> (model, tokenizer)
+
+        # Initialize DualRAG if available and enabled
+        if enable_rag and DUAL_RAG_AVAILABLE:
+            try:
+                self.dual_rag = DualRAG(
+                    max_global_docs=10000,
+                    max_local_docs=1000
+                )
+                self.logger.info("[Phase 3] DualRAG initialized (global + local knowledge bases)")
+            except Exception as e:
+                self.logger.warning(f"[Phase 3] DualRAG initialization failed: {e}")
+                self.logger.warning("[Phase 3] RAG features disabled, continuing with routing only")
+                self.dual_rag = None
+                self.enable_rag = False
+        elif enable_rag and not DUAL_RAG_AVAILABLE:
+            self.logger.warning("[Phase 3] DualRAG not available (missing dependencies)")
+            self.logger.warning("[Phase 3] Install with: pip install chromadb sentence-transformers")
+            self.enable_rag = False
+        else:
+            self.logger.info("[Phase 3] RAG disabled (enable_rag=False)")
+
+        # Domain registry
         self.domains = {}
 
         # Statistics
@@ -86,10 +137,18 @@ class TinyBERTOrchestrator:
             'requests_success': 0,
             'requests_failed': 0,
             'requests_reasoning': 0,  # Track reasoning-based requests
+            'requests_rag': 0,  # Track RAG-augmented requests (Phase 3)
             'total_latency_ms': 0
         }
 
-        mode = "hybrid (TinyBERT + Phi-2)" if enable_reasoning else "TinyBERT only"
+        # Build mode description
+        components = ["TinyBERT"]
+        if enable_reasoning:
+            components.append("Phi-2")
+        if self.enable_rag:
+            components.append("RAG")
+        mode = " + ".join(components)
+
         self.logger.info(f"TinyBERTOrchestrator initialized ({mode})")
 
     def _load_config(self, config_path: Optional[str]) -> Dict:
@@ -129,24 +188,76 @@ class TinyBERTOrchestrator:
         self,
         name: str,
         description: str,
-        keywords: Optional[list] = None
+        keywords: Optional[list] = None,
+        model_name: Optional[str] = None
     ):
         """
-        Register a domain for routing.
+        Register a domain for routing with optional RAG and model configuration (Phase 3).
 
         Args:
             name: Domain name
             description: Domain description
             keywords: Optional keywords for fallback routing
+            model_name: Optional Ollama model for this domain (e.g., "ollama://llama3.2:3b")
+                       If not provided, domain will use routing only (Phase 2)
 
         Example:
+            >>> # Phase 2: Routing only
             >>> orchestrator.register_domain(
             ...     "finance",
             ...     "Financial transactions",
             ...     ["money", "transfer"]
             ... )
+            >>>
+            >>> # Phase 3: With Ollama model
+            >>> orchestrator.register_domain(
+            ...     "medical",
+            ...     "Medical diagnosis",
+            ...     ["diagnosis", "treatment"],
+            ...     model_name="ollama://llama3.2:3b"
+            ... )
         """
+        # Register with router (Phase 2)
         self.router.register_domain(name, description, keywords)
+
+        # Register with DualRAG if available (Phase 3)
+        if self.dual_rag:
+            self.dual_rag.register_domain(name)
+            self.logger.info(f"[Phase 3] Domain '{name}' registered with LocalRAG")
+
+        # Load Ollama model if specified (Phase 3)
+        if model_name and OLLAMA_AVAILABLE:
+            try:
+                model, tokenizer = load_ollama_model(
+                    model_name=model_name,
+                    base_url=self.ollama_base_url
+                )
+                self.domain_models[name] = (model, tokenizer)
+                self.logger.info(f"[Phase 3] Ollama model loaded for domain '{name}': {model_name}")
+            except OllamaConnectionError as e:
+                self.logger.warning(
+                    f"[Phase 3] Failed to load Ollama model for '{name}': {e}"
+                )
+                self.logger.warning(
+                    f"[Phase 3] Domain '{name}' will use routing only (Phase 2 mode)"
+                )
+            except Exception as e:
+                self.logger.error(f"[Phase 3] Unexpected error loading model for '{name}': {e}")
+        elif model_name and not OLLAMA_AVAILABLE:
+            self.logger.warning(
+                f"[Phase 3] Ollama adapter not available for domain '{name}'"
+            )
+            self.logger.warning("[Phase 3] Install with: pip install requests")
+
+        # Store domain metadata
+        self.domains[name] = {
+            'description': description,
+            'keywords': keywords or [],
+            'model_name': model_name,
+            'has_model': name in self.domain_models,
+            'has_rag': self.dual_rag is not None
+        }
+
         self.logger.info(f"Domain registered: {name}")
 
         # Publish event
@@ -223,15 +334,105 @@ class TinyBERTOrchestrator:
             self.state_machine.transition(WorkflowState.VALIDATE_PRE)
             self._publish_state_change(WorkflowState.VALIDATE_PRE, correlation_id)
 
-            # 4. LOAD_SLM (placeholder - will be implemented in Phase 4)
-            self.state_machine.transition(WorkflowState.LOAD_SLM)
-            self._publish_state_change(WorkflowState.LOAD_SLM, correlation_id)
+            # Phase 3: RAG retrieval (if enabled)
+            rag_context = []
+            rag_retrieval_time_ms = 0
+            if self.enable_rag and self.dual_rag:
+                rag_start = time.time()
+                try:
+                    rag_results = self.dual_rag.retrieve(
+                        query=query,
+                        domain_id=domain,
+                        top_k=3,  # Retrieve top 3 from each (local + global)
+                        search_local=True,
+                        search_global=True
+                    )
 
-            # 5. EXECUTE (placeholder - will be implemented in Phase 4)
-            self.state_machine.transition(WorkflowState.EXECUTE)
-            self._publish_state_change(WorkflowState.EXECUTE, correlation_id)
+                    # Combine local and global RAG results
+                    for source_type in ['local', 'global']:
+                        if source_type in rag_results:
+                            for doc, score in zip(
+                                rag_results[source_type].documents,
+                                rag_results[source_type].scores
+                            ):
+                                rag_context.append({
+                                    'source': source_type,
+                                    'content': doc.content,
+                                    'score': score,
+                                    'metadata': doc.metadata
+                                })
 
-            # 6. VALIDATE_POST (placeholder - will be implemented in Phase 7)
+                    rag_retrieval_time_ms = (time.time() - rag_start) * 1000
+                    self.stats['requests_rag'] += 1
+                    self.logger.info(
+                        f"[Phase 3] RAG retrieval: {len(rag_context)} docs in {rag_retrieval_time_ms:.1f}ms"
+                    )
+
+                except Exception as e:
+                    self.logger.error(f"[Phase 3] RAG retrieval failed: {e}")
+                    # Continue without RAG context
+
+            # 4. LOAD_SLM / EXECUTE with Ollama (Phase 3)
+            response_text = None
+            execution_time_ms = 0
+
+            if domain in self.domain_models:
+                # Phase 3: Execute with Ollama model
+                self.state_machine.transition(WorkflowState.LOAD_SLM)
+                self._publish_state_change(WorkflowState.LOAD_SLM, correlation_id)
+
+                self.state_machine.transition(WorkflowState.EXECUTE)
+                self._publish_state_change(WorkflowState.EXECUTE, correlation_id)
+
+                exec_start = time.time()
+                try:
+                    model, tokenizer = self.domain_models[domain]
+
+                    # Build prompt with RAG context
+                    prompt = self._build_prompt_with_rag(query, rag_context)
+
+                    # Tokenize
+                    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
+
+                    # Generate response
+                    outputs = model.generate(
+                        input_ids=inputs['input_ids'],
+                        max_new_tokens=256,
+                        temperature=0.7,
+                        top_p=0.9,
+                        do_sample=True
+                    )
+
+                    # Decode response
+                    response_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+                    # Extract only the generated part (remove prompt)
+                    if hasattr(outputs[0], 'generated_text'):
+                        response_text = outputs[0].generated_text
+                    elif len(response_text) > len(prompt):
+                        response_text = response_text[len(prompt):].strip()
+
+                    execution_time_ms = (time.time() - exec_start) * 1000
+                    self.logger.info(
+                        f"[Phase 3] Ollama execution: {len(response_text)} chars in {execution_time_ms:.1f}ms"
+                    )
+
+                except Exception as e:
+                    self.logger.error(f"[Phase 3] Ollama execution failed: {e}")
+                    response_text = f"Error: Failed to generate response - {str(e)}"
+                    execution_time_ms = (time.time() - exec_start) * 1000
+            else:
+                # Phase 2: No model configured, routing only
+                self.state_machine.transition(WorkflowState.LOAD_SLM)
+                self._publish_state_change(WorkflowState.LOAD_SLM, correlation_id)
+
+                self.state_machine.transition(WorkflowState.EXECUTE)
+                self._publish_state_change(WorkflowState.EXECUTE, correlation_id)
+
+                response_text = None
+                self.logger.info(f"[Phase 2] No model configured for domain '{domain}' - routing only")
+
+            # 5. VALIDATE_POST (placeholder - will be implemented in Phase 7)
             self.state_machine.transition(WorkflowState.VALIDATE_POST)
             self._publish_state_change(WorkflowState.VALIDATE_POST, correlation_id)
 
@@ -251,18 +452,31 @@ class TinyBERTOrchestrator:
             self.stats['requests_success'] += 1
             self.stats['total_latency_ms'] += latency_ms
 
-            # Build result
+            # Build result with Phase 3 enhancements
             result = {
                 'status': 'success',
-                'message': f'Request routed to {domain} domain (Phase 2 - routing only)',
+                'message': self._build_result_message(domain, response_text, rag_context),
                 'metadata': {
                     'domain': domain,
                     'confidence': confidence,
                     'latency_ms': latency_ms,
                     'correlation_id': correlation_id,
-                    'state_history': [s.value for s in self.state_machine.get_state_history()]
+                    'state_history': [s.value for s in self.state_machine.get_state_history()],
+                    # Phase 3 metrics
+                    'rag_retrieval_ms': rag_retrieval_time_ms,
+                    'rag_docs_count': len(rag_context),
+                    'execution_ms': execution_time_ms,
+                    'has_response': response_text is not None,
+                    'has_rag': len(rag_context) > 0
                 }
             }
+
+            # Phase 3: Add response and RAG context if available
+            if response_text:
+                result['response'] = response_text
+
+            if rag_context:
+                result['rag_context'] = rag_context
 
             # Publish completion
             self.message_bus.publish(
@@ -542,6 +756,84 @@ class TinyBERTOrchestrator:
                 }
             }
 
+    def _build_prompt_with_rag(self, query: str, rag_context: List[Dict]) -> str:
+        """
+        Build prompt with RAG context for model generation (Phase 3).
+
+        Args:
+            query: User query
+            rag_context: List of retrieved documents with metadata
+
+        Returns:
+            Formatted prompt string
+
+        Example:
+            >>> prompt = orchestrator._build_prompt_with_rag(
+            ...     "What is diabetes?",
+            ...     [{'content': 'Diabetes is...', 'source': 'global', 'score': 0.95}]
+            ... )
+        """
+        if not rag_context:
+            # No context, return simple prompt
+            return f"User question: {query}\n\nAnswer:"
+
+        # Build context section from RAG documents
+        context_parts = []
+        for i, doc in enumerate(rag_context[:5], 1):  # Limit to top 5 docs
+            source_label = "Domain Knowledge" if doc['source'] == 'local' else "General Knowledge"
+            context_parts.append(f"[{source_label} {i}] {doc['content'][:200]}")  # Truncate long docs
+
+        context_section = "\n".join(context_parts)
+
+        # Build full prompt
+        prompt = f"""Context information:
+{context_section}
+
+User question: {query}
+
+Based on the context above, provide a detailed answer:"""
+
+        return prompt
+
+    def _build_result_message(
+        self,
+        domain: str,
+        response_text: Optional[str],
+        rag_context: List[Dict]
+    ) -> str:
+        """
+        Build appropriate result message based on Phase 2 vs Phase 3 execution (Phase 3).
+
+        Args:
+            domain: Classified domain
+            response_text: Generated response (None for Phase 2)
+            rag_context: RAG context documents (empty for Phase 2)
+
+        Returns:
+            Human-readable result message
+
+        Example:
+            >>> msg = orchestrator._build_result_message("medical", "Diabetes is...", [])
+            >>> # Returns: "Request processed by medical domain (Phase 3: routing + RAG + generation)"
+        """
+        if response_text and rag_context:
+            return (
+                f"Request processed by {domain} domain "
+                f"(Phase 3: routing + RAG ({len(rag_context)} docs) + generation)"
+            )
+        elif response_text:
+            return (
+                f"Request processed by {domain} domain "
+                f"(Phase 3: routing + generation, no RAG context)"
+            )
+        elif rag_context:
+            return (
+                f"Request routed to {domain} domain "
+                f"(Phase 3: routing + RAG ({len(rag_context)} docs), no model configured)"
+            )
+        else:
+            return f"Request routed to {domain} domain (Phase 2: routing only)"
+
     def get_stats(self) -> Dict[str, Any]:
         """
         Get orchestrator statistics.
@@ -564,12 +856,18 @@ class TinyBERTOrchestrator:
             'requests_success': self.stats['requests_success'],
             'requests_failed': self.stats['requests_failed'],
             'requests_reasoning': self.stats['requests_reasoning'],
+            'requests_rag': self.stats.get('requests_rag', 0),  # Phase 3
             'success_rate': self.stats['requests_success'] / total if total > 0 else 0,
             'reasoning_rate': self.stats['requests_reasoning'] / total if total > 0 else 0,
+            'rag_rate': self.stats.get('requests_rag', 0) / total if total > 0 else 0,  # Phase 3
             'average_latency_ms': avg_latency,
             'domains_registered': len(self.router.domains),
             'domain_stats': self.router.get_domain_stats(),
-            'message_bus': self.message_bus.get_stats()
+            'message_bus': self.message_bus.get_stats(),
+            # Phase 3 specific stats
+            'rag_enabled': self.enable_rag,
+            'dual_rag_available': self.dual_rag is not None,
+            'domains_with_models': len(self.domain_models)
         }
 
     def reset_stats(self):
@@ -579,6 +877,7 @@ class TinyBERTOrchestrator:
             'requests_success': 0,
             'requests_failed': 0,
             'requests_reasoning': 0,
+            'requests_rag': 0,  # Phase 3
             'total_latency_ms': 0
         }
         self.router.reset_stats()
