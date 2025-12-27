@@ -9,7 +9,7 @@ description = "Multi-Domain Small Language Model Agentic Orchestration Framework
 readme = "README.md"
 license = {text = "Apache 2.0"}
 authors = [
-    {name = "MDSA Team", email = "mdsa@example.com"}
+    {name = "Vicky Vignesh", email = "vickyvignesh2002@gmail.com"}
 ]
 keywords = ["ai", "machine-learning", "nlp", "orchestration", "slm", "small-language-models", "rag", "multi-domain"]
 classifiers = [
@@ -79,10 +79,10 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/mdsa-framework"
-Documentation = "https://mdsa-framework.readthedocs.io"
-Repository = "https://github.com/your-org/mdsa-framework"
-"Bug Tracker" = "https://github.com/your-org/mdsa-framework/issues"
+Homepage = "https://github.com/VickyVignesh2002/MDSA-Orchestration-Framework"
+Documentation = "https://github.com/VickyVignesh2002/MDSA-Orchestration-Framework#readme"
+Repository = "https://github.com/VickyVignesh2002/MDSA-Orchestration-Framework"
+"Bug Tracker" = "https://github.com/VickyVignesh2002/MDSA-Orchestration-Framework/issues"
 
 # Black configuration
 [tool.black]
