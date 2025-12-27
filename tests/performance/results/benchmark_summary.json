@@ -1,16 +1,16 @@
 {
-  "timestamp": "2025-12-26T20:39:49.950779",
+  "timestamp": "2025-12-27T12:54:54.278328",
   "benchmarks": {
     "latency": {
       "status": "completed",
-      "median_ms": 0,
-      "p95_ms": 0,
-      "passed": false
+      "median_ms": 12.750949994369876,
+      "p95_ms": 3679.4235999986995,
+      "passed": true
     },
     "accuracy": {
       "status": "completed",
-      "accuracy_pct": 0,
-      "passed": false
+      "accuracy_pct": 60.9375,
+      "passed": true
     },
     "rag_precision": {
       "status": "not_implemented",

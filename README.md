@@ -1,29 +1,37 @@
 # MDSA: Multi-Domain Specialized Agentic Orchestration Framework
 
-**Production-Ready Framework for Intelligent Task Routing and Domain-Specific Orchestration**
+**Lightweight Framework for Intelligent Domain Routing with Small Language Models**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-org/mdsa-framework)
+[![Version](https://img.shields.io/badge/version-1.0.0--phase2-blue.svg)](https://github.com/VickyVignesh2002/MDSA-Orchestration-Framework)
 [![Python](https://img.shields.io/badge/python-3.9+-green.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-orange.svg)](LICENSE)
+[![Implementation](https://img.shields.io/badge/phase-2%20complete-green.svg)](https://github.com/VickyVignesh2002/MDSA-Orchestration-Framework)
 
 ---
 
 ## 🎯 Overview
 
-MDSA (Multi-Domain Specialized Agentic Orchestration) is a high-performance framework that intelligently routes queries to domain-specific AI models, combining the speed of small language models (TinyBERT, 67M params) with the power of specialized knowledge bases.
+MDSA (Multi-Domain Specialized Agentic Orchestration) is a framework architecture for building domain-focused AI applications using lightweight routing and specialized knowledge bases.
 
-**Key Features:**
-- ⚡ **80% Faster** domain classification (25-61ms vs 125-310ms)
-- 🚀 **200x Speedup** on repeated queries via response caching
-- 🎯 **94.1% Accuracy** in domain routing (10,000 test queries)
-- 💾 **Dual RAG System** (global + local knowledge bases)
-- 📊 **Real-time Monitoring** dashboard with analytics
-- 💰 **Zero Cost** (runs entirely locally with Ollama)
-- 📦 **pip-installable** and production-ready
+**Current Phase 2 Status - TinyBERT Router (Production-Ready):**
+- ⚡ **Fast Routing** - 13-17ms median latency on CPU
+- 🎯 **Domain Classification** - 60.9% accuracy on medical domains
+- 💾 **Lightweight** - 400MB memory footprint (TinyBERT only)
+- 📊 **Benchmarked** - Comprehensive test suite with automated validation
+- 💰 **Zero Cost** - Runs entirely locally
+- 📦 **pip-installable** - Ready for Phase 2 routing applications
+
+**Planned Phase 3-4 Features (Under Development):**
+- 🚀 **Dual RAG System** - Global + domain-specific knowledge bases (in progress)
+- 🤖 **Domain Specialists** - Ollama model integration (in progress)
+- 📈 **Response Caching** - 200x speedup on repeated queries (planned)
+- 📊 **Monitoring Dashboard** - Real-time analytics (code exists, testing pending)
 
 ---
 
 ## 🏗️ Architecture
+
+**Note**: The diagram below shows the complete planned architecture. **Phase 2 (current) implements only the TinyBERT Router**. Phase 3-4 will add RAG, caching, and domain specialists.
 
 ```
 ┌─────────────┐
@@ -33,13 +41,13 @@ MDSA (Multi-Domain Specialized Agentic Orchestration) is a high-performance fram
        ▼
 ┌─────────────────────────────┐
 │ TinyBERT Router (67M)       │ ← Domain Embedding Cache
-│ Classification: 25-61ms      │   (80% faster)
+│ Classification: 13-17ms     │   (80% faster) ✅ PHASE 2
 └──────┬──────────────────────┘
        │
        ▼
 ┌─────────────────────────────┐
 │ Response Cache Check        │ ← MD5-based
-│ Cache Hit: <10ms (200x)     │   FIFO Eviction
+│ Cache Hit: <10ms (200x)     │   FIFO Eviction 📋 PHASE 4
 └──────┬──────────────────────┘
        │ (cache miss)
        ▼
@@ -47,58 +55,112 @@ MDSA (Multi-Domain Specialized Agentic Orchestration) is a high-performance fram
 │ Dual RAG Retrieval          │
 │ • Global KB (10k docs)      │
 │ • Local KB (1k per domain)  │
-│ Retrieval: ~60ms            │
+│ Retrieval: ~60ms            │ 🔄 PHASE 3
 └──────┬──────────────────────┘
        │
        ▼
 ┌─────────────────────────────┐
 │ Domain-Specific Model       │
 │ (Ollama/Cloud)              │
-│ Inference: 500-1500ms       │
+│ Inference: 500-1500ms       │ 🔄 PHASE 3
 └──────┬──────────────────────┘
        │
        ▼
 ┌─────────────────────────────┐
 │ Response + Tracking         │
 │ • Return to user            │
-│ • Track to dashboard        │
+│ • Track to dashboard        │ 📋 PHASE 4
 └─────────────────────────────┘
 ```
 
 ### Core Components
 
-1. **TinyBERT Router** - Fast domain classification (<50ms)
-2. **Dual RAG System** - Global + domain-specific knowledge retrieval
-3. **Domain Models** - Specialized models per domain (Ollama/Cloud)
-4. **Phi-2 Reasoner** - Optional complex reasoning (disabled by default)
-5. **Monitoring Dashboard** - Real-time analytics and metrics
-6. **Response Cache** - 200x speedup on repeated queries
+1. **TinyBERT Router** ✅ Phase 2 - Fast domain classification (13-17ms)
+2. **Dual RAG System** 🔄 Phase 3 - Global + domain-specific knowledge retrieval
+3. **Domain Models** 🔄 Phase 3 - Specialized models per domain (Ollama/Cloud)
+4. **Phi-2 Reasoner** 📋 Phase 4 - Optional complex reasoning (code exists, disabled)
+5. **Monitoring Dashboard** 📋 Phase 4 - Real-time analytics (code exists, testing pending)
+6. **Response Cache** 📋 Phase 4 - 200x speedup on repeated queries (code exists, testing pending)
 
 ---
 
 ## 📊 Performance Metrics
 
-| Metric | Value | Comparison |
-|--------|-------|------------|
-| **Domain Classification** | 25-61ms | 80% faster than baseline |
-| **First Query (Simple)** | 585ms | Baseline |
-| **Cached Query** | <10ms | 200x faster |
-| **Domain Accuracy** | 94.3% | Better than LangChain (89%) |
-| **Cache Hit Rate** | 60-80% | FAQ scenarios |
-| **Memory Footprint** | 910MB | vs 2.3GB (LangChain) |
-| **Cost** | $0 | Local deployment |
+### Phase 2 (Current - Production-Ready)
 
-### Comparison with Alternatives
+**Measured on Intel 12-core CPU, 16GB RAM, Windows (December 2025):**
 
-| System | Latency | Cost/Query | Accuracy | Memory |
-|--------|---------|------------|----------|--------|
-| **MDSA (Ours)** | **625ms** | **$0** | **94.3%** | **910MB** |
-| LangChain + Ollama | 1,850ms | $0 | 89.1% | 2,300MB |
-| AutoGen + Local | 2,100ms | $0 | 91.7% | 3,500MB |
-| GPT-3.5 API | 1,450ms | $0.002 | N/A | 0 (cloud) |
-| GPT-4 API | 3,200ms | $0.06 | N/A | 0 (cloud) |
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Routing Latency (median)** | 13ms | ✅ Measured |
+| **Routing Latency (P95)** | 3,679ms (includes model loading) | ✅ Measured |
+| **Domain Accuracy** | 60.9% (medical domains) | ✅ Measured |
+| **Memory Footprint** | 400MB (TinyBERT only) | ✅ Measured |
+| **Model Load Time** | ~3.7s (first query only) | ✅ Measured |
+| **Cost** | $0 (local deployment) | ✅ Confirmed |
 
-**MDSA is 2.4x faster than LangChain with better accuracy and 60% less memory.**
+**Note**: Medical domains (coding, billing, claims, scheduling) have higher semantic overlap than IT domains, resulting in lower accuracy (60.9%) compared to projected IT domain accuracy (94.1%).
+
+### Phase 3-4 (Planned - Under Development)
+
+**Projected performance with full pipeline (RAG + SLMs + caching):**
+
+| Metric | Target Value | Status |
+|--------|-------------|--------|
+| **End-to-End Latency** | 348-391ms | 🔄 Phase 3 in progress |
+| **RAG Precision@3** | 87.3% | 🔄 Phase 3 in progress |
+| **Cached Query Latency** | <10ms (200x speedup) | 📋 Phase 4 planned |
+| **IT Domain Accuracy** | 94.1% | 📋 Testing pending |
+| **Memory (Full System)** | 910MB | 🔄 Phase 3 in progress |
+
+### Comparison with Alternatives (Projected - Phase 3-4)
+
+| System | Latency | Memory | Status |
+|--------|---------|--------|--------|
+| **MDSA Phase 2 (Current)** | **13ms** (routing) | **400MB** | ✅ Deployed |
+| **MDSA Phase 3-4 (Planned)** | **348-391ms** (full) | **910MB** | 🔄 In progress |
+| LangChain + Ollama | 1,850ms | 2,300MB | 📊 Benchmarking pending |
+| AutoGen + Local | 2,100ms | 3,500MB | 📊 Benchmarking pending |
+
+**Comparative benchmarks will be conducted upon Phase 3-4 completion.**
+
+---
+
+## 🗺️ Implementation Roadmap
+
+### ✅ Phase 1: Architecture Design (Complete - November 2025)
+- Framework architecture and design patterns
+- Component specifications and API design
+- Research paper formulation
+- **Status**: Architecture documented and validated
+
+### ✅ Phase 2: TinyBERT Router (Complete - December 2025)
+- Domain classification with TinyBERT (67M parameters)
+- Domain registration and management API
+- Embedding cache for 80% faster routing
+- Performance benchmark suite with automated validation
+- **Status**: Production-ready, all tests passing
+- **Benchmarks**: 13ms median latency, 60.9% accuracy (medical domains)
+
+### 🔄 Phase 3: RAG Integration (In Progress - January 2026)
+- ChromaDB vector store integration
+- Global knowledge base (10,000+ documents)
+- Domain-specific knowledge bases (1,000 documents per domain)
+- Two-stage retrieval pipeline (local → global → merge)
+- Ollama domain specialist model integration
+- **Status**: Architecture designed, implementation in progress
+- **Target**: 348-391ms end-to-end latency, 87.3% RAG precision@3
+
+### 📋 Phase 4: Validators & Caching (Planned - February 2026)
+- Pre-execution and post-execution validators
+- MD5-based response caching with FIFO eviction
+- Monitoring dashboard activation for real-time analytics
+- Performance optimization and comparative benchmarks
+- **Status**: Code framework exists, testing and integration pending
+- **Target**: <10ms cached query latency (200x speedup)
+
+**Current Release**: v1.0.0-phase2 (TinyBERT Router only)
+**Next Release**: v1.1.0-phase3 (RAG + Domain Specialists) - January 2026
 
 ---
 
@@ -107,37 +169,58 @@ MDSA (Multi-Domain Specialized Agentic Orchestration) is a high-performance fram
 ### Installation
 
 ```bash
-# Option 1: From PyPI (when published)
+# Option 1: From PyPI (when published - Phase 2 router only)
 pip install mdsa-framework
 
 # Option 2: From source
-git clone https://github.com/your-org/mdsa-framework.git
-cd mdsa-framework
+git clone https://github.com/VickyVignesh2002/MDSA-Orchestration-Framework.git
+cd MDSA-Orchestration-Framework/version_1
 pip install -e .
 ```
 
-### Basic Usage
+### Basic Usage (Phase 2 - TinyBERT Router)
+
+**Current Phase 2 provides fast domain routing only. Full RAG and specialist models are in Phase 3.**
 
 ```python
-from mdsa import TinyBERTOrchestrator
-from mdsa.memory import DualRAG
+from mdsa import MDSA  # Alias for TinyBERTOrchestrator
 
-# Initialize orchestrator
-orchestrator = TinyBERTOrchestrator()
+# Initialize orchestrator (Phase 2: routing only)
+mdsa = MDSA(log_level="INFO", enable_reasoning=False)
 
 # Register a domain
-orchestrator.register_domain(
-    name="medical",
-    description="Medical diagnosis and treatment recommendations",
-    keywords=["diagnosis", "treatment", "symptoms", "patient"]
+mdsa.register_domain(
+    name="medical_coding",
+    description="Medical coding for ICD-10, CPT, and HCPCS codes",
+    keywords=["code", "coding", "ICD", "CPT", "billing code"]
 )
 
-# Process a query
-result = orchestrator.process_request("Patient has chest pain and fever")
+# Route a query to the correct domain
+result = mdsa.process_request("What is the ICD-10 code for hypertension?")
 
-print(f"Domain: {result['domain']}")        # "medical"
-print(f"Confidence: {result['confidence']}")  # 0.987
-print(f"Response: {result['response']}")     # AI-generated medical advice
+print(f"Domain: {result['domain']}")        # "medical_coding"
+print(f"Confidence: {result['confidence']}")  # 0.943
+print(f"Latency: {result['latency_ms']}ms")   # 15ms
+
+# Note: Phase 2 provides domain routing.
+# Phase 3 (in progress) will add RAG retrieval and domain specialist responses.
+```
+
+### Full Pipeline Usage (Phase 3 - Coming January 2026)
+
+```python
+from mdsa import MDSA
+from mdsa.memory import DualRAG  # Phase 3
+
+# Initialize with RAG (Phase 3)
+mdsa = MDSA(config_path="configs/framework_config.yaml")
+
+# Process query with RAG retrieval and specialist model
+result = mdsa.process_request("Patient has chest pain and fever")
+
+print(f"Domain: {result['domain']}")           # "clinical_diagnosis"
+print(f"Response: {result['response']}")       # AI-generated medical advice
+print(f"RAG Context: {result['rag_context']}") # Retrieved medical literature
 ```
 
 ### Running the Example Application
@@ -533,8 +616,8 @@ A: Use the dashboard RAG management page to upload documents, or use the Python 
 
 ---
 
-**Version:** 1.0.0
-**Status:** Production Ready
-**Last Updated:** December 24, 2025
+**Version:** 1.0.0-phase2
+**Status:** Phase 2 Production Ready (Router) | Phase 3-4 In Development (RAG + Specialists)
+**Last Updated:** December 27, 2025
 
 **Made with ❤️ by the MDSA Team**

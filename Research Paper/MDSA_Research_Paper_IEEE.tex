@@ -28,7 +28,7 @@ email@university.edu}
 \maketitle
 
 \begin{abstract}
-Enterprise AI systems face significant challenges including high operational costs, excessive latency, and limited control over data privacy. Current general-purpose frameworks like LangChain and AutoGen, while powerful, struggle with the specific requirements of domain-focused applications where specialized knowledge and fast response times are critical. We present MDSA (Multi-Domain Specialized Agentic Orchestration), a novel framework that combines lightweight domain classification using small language models with specialized knowledge bases to deliver superior performance for enterprise deployments. Our approach uses a 67-million parameter TinyBERT router for domain classification, achieving 94.1\% accuracy on 10,000 test queries while maintaining router latency of 40-60ms. Combined with a dual RAG architecture featuring both global and domain-specific knowledge bases, MDSA achieves median end-to-end latency of 348-391ms depending on hardware, with 87.3\% RAG retrieval precision. The framework enables zero-cost local deployment with quantized models, consuming under 1GB memory. Experimental evaluation on a production-scale test suite across 5 domains demonstrates practical viability, with direct compute cost of \$0.0006-0.0009 per request. The framework is released as open source to support enterprise AI deployments requiring performance, cost efficiency and data privacy.
+Enterprise AI systems face significant challenges including high operational costs, excessive latency, and limited control over data privacy. Current general-purpose frameworks like LangChain and AutoGen, while powerful, struggle with the specific requirements of domain-focused applications where specialized knowledge and fast response times are critical. We present MDSA (Multi-Domain Specialized Agentic Orchestration), a novel framework architecture that combines lightweight domain classification using small language models with specialized knowledge bases to deliver superior performance for enterprise deployments. The current Phase 2 implementation provides a production-ready TinyBERT router (67M parameters) achieving 60.9\% routing accuracy on medical domain queries with 13-17ms median latency on CPU-only hardware. The complete architecture, currently under active development, is designed to achieve 94.1\% routing accuracy on IT domains, with projected end-to-end latency of 348-391ms when combined with dual RAG retrieval and domain-specific models. The framework enables zero-cost local deployment and is released as open source to support enterprise AI deployments requiring performance, cost efficiency and data privacy. \textbf{Implementation Status}: Phase 2 (TinyBERT routing) complete and benchmarked; Phase 3 (RAG + domain specialists) and Phase 4 (validators + caching) under active development.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -45,15 +45,17 @@ We identify three key limitations in existing frameworks. First, routing decisio
 
 \subsection{Contributions}
 
-This paper introduces MDSA, a framework specifically designed for domain-focused enterprise applications where queries can be reliably classified into known categories. Our key contributions are:
+This paper introduces MDSA, a framework architecture specifically designed for domain-focused enterprise applications where queries can be reliably classified into known categories. Our key contributions are:
 
 \begin{itemize}
-\item A hybrid orchestration architecture combining a lightweight TinyBERT router (67M parameters) with domain-specialized models, achieving 94.3\% routing accuracy while maintaining sub-100ms classification latency
-\item A dual RAG system featuring both global knowledge bases (10,000+ documents) and domain-specific stores (1,000 documents per domain), achieving 87.3\% Precision@3 for relevant document retrieval
-\item A multi-level caching strategy utilizing domain embedding cache and response cache, providing 200x speedup on repeated queries
-\item Comprehensive evaluation demonstrating 2.4x improvement in response latency and 60\% reduction in memory consumption compared to LangChain, while maintaining higher accuracy
-\item Open-source implementation supporting both local (Ollama) and cloud model deployment, enabling zero-cost operation for privacy-sensitive applications
+\item \textbf{Architectural Design}: A hybrid orchestration architecture combining a lightweight TinyBERT router (67M parameters) with domain-specialized models and dual RAG knowledge bases
+\item \textbf{Phase 2 Implementation (Complete)}: Production-ready TinyBERT router achieving 60.9\% accuracy on medical domains with 13-17ms median latency on CPU hardware, demonstrating the viability of small language models for domain classification
+\item \textbf{Projected Performance (Phase 3-4)}: Designed system targeting 94.1\% routing accuracy on IT domains, 348-391ms end-to-end latency with RAG retrieval (87.3\% Precision@3), and 200x speedup via response caching
+\item \textbf{Benchmark Suite}: Comprehensive performance testing framework validating routing latency and accuracy with automated validation against architectural requirements
+\item \textbf{Open-Source Release}: Full framework implementation (github.com/VickyVignesh2002/MDSA-Orchestration-Framework) with pip-installable package, supporting both local (Ollama) and cloud model deployment for zero-cost operation
 \end{itemize}
+
+\textbf{Current Implementation Status}: Phase 2 complete (routing), Phase 3 in progress (RAG + models), Phase 4 planned (validators + caching).
 
 The remainder of this paper is organized as follows: Section II reviews related work in LLM frameworks and orchestration systems. Section III presents the MDSA architecture and design decisions. Section IV details the technical implementation. Section V reports experimental evaluation results. Section VI presents a medical chatbot case study. Section VII discusses findings and limitations, and Section VIII concludes with future directions.
 
@@ -271,6 +273,29 @@ Production deployment requires security controls and operational features:
 \end{itemize}
 
 Configuration is managed through YAML files with environment variable overrides, following 12-factor app principles \cite{twelvefactor}.
+
+\subsection{Implementation Status}
+
+The MDSA framework is developed in a phased approach, with each phase delivering production-ready components while building toward the complete system architecture described in this paper.
+
+\textbf{Phase 2 - Domain Routing (Complete)}:
+The TinyBERT router is fully implemented, tested, and production-ready \cite{paszke2019pytorch}. Current benchmarks show:
+\begin{itemize}
+\item Median routing latency: 13ms (CPU-only, Intel 12-core)
+\item Routing accuracy: 60.9\% (medical domains with high semantic overlap)
+\item Memory footprint: 400MB (TinyBERT only)
+\item Status: Deployed and benchmarked (December 2025)
+\end{itemize}
+
+Medical domains exhibit lower accuracy (60.9\%) compared to IT domains (projected 94.1\%) due to higher semantic overlap between categories (e.g., "preauthorization for MRI" could reasonably be classified as either medical billing or claims processing).
+
+\textbf{Phase 3 - RAG Integration (In Progress)}:
+Dual RAG architecture with global and domain-specific knowledge bases. Implementation scheduled for January 2026.
+
+\textbf{Phase 4 - Validators and Caching (Planned)}:
+Response caching and pre/post-execution validators. Implementation scheduled for February 2026.
+
+\textbf{Benchmark Methodology}: All reported metrics are measured on the Phase 2 implementation for routing performance, with Phase 3-4 metrics projected based on architectural design and comparable systems. The complete end-to-end system (348-391ms latency, 87.3\% RAG precision) will be validated upon Phase 3-4 completion.
 
 \section{Experimental Evaluation}
 
