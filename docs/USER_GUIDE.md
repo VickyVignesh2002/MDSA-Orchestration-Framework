@@ -178,26 +178,56 @@ medical = create_medical_domain()
 - Any model on HuggingFace Hub
 
 **Ollama Models:**
-- `llama3.2:1b` - Ultra fast
-- `llama3.2:3b` - Balanced
-- `phi3:mini` - Efficient
-- `qwen2.5:3b-instruct` - Instruction-tuned
-- Any Ollama model installed locally
+MDSA supports any model from [Ollama](https://ollama.ai), a local LLM runtime. Ollama models run entirely on your hardware with GPU acceleration support.
+
+**Prerequisites**: Ollama must be installed and running. See [Ollama Setup Guide](OLLAMA_SETUP.md) for complete installation instructions.
+
+**Recommended Models** (sorted by speed):
+
+| Model | Parameters | VRAM | Speed | Use Case |
+|-------|-----------|------|-------|----------|
+| `gemma3:1b` | 1B | 2GB | Fastest | High-throughput, simple queries |
+| `qwen3:1.7b` | 1.7B | 3GB | Fast | Balanced performance |
+| `llama3.2:3b-instruct-q4_0` | 3B | 3GB | Medium | Production quality responses |
+| `phi3:3.8b` | 3.8B | 4GB | Medium | Complex reasoning |
+| `llama3.1:8b` | 8B | 6GB | Slower | High-quality, detailed responses |
+
+**Model Name Format**: Use `ollama://` prefix in MDSA:
+```python
+model_name="ollama://gemma3:1b"  # Correct format for MDSA
+```
+
+**Performance Tips**:
+- **CPU-only**: Use `gemma3:1b` or `qwen3:1.7b` (2-5 seconds per response)
+- **GPU (6GB)**: Use `llama3.2:3b-instruct-q4_0` (500-1500ms per response)
+- **GPU (12GB+)**: Use `llama3.1:8b` for best quality (1-3 seconds)
+
+**Additional Resources**:
+- [Ollama Setup Guide](OLLAMA_SETUP.md) - Installation and configuration
+- [GPU Configuration](GPU_CONFIGURATION.md) - Optimize GPU usage
+- [Troubleshooting](OLLAMA_TROUBLESHOOTING.md) - Common issues
 
 ### Assigning Models to Domains
 
 ```python
-# Method 1: Direct assignment in DomainConfig
+# Method 1: Direct assignment in DomainConfig (Ollama)
 domain = DomainConfig(
     domain_id="my_domain",
-    model_name="llama3.2:3b",  # Assign specific model
+    model_name="ollama://llama3.2:3b",  # Note: ollama:// prefix required
     # ... other config
 )
 
 # Method 2: Change model for existing domain
-domain.model_name = "phi3:mini"
+domain.model_name = "ollama://phi3:mini"
 
-# Method 3: Use tier-based configs
+# Method 3: Use HuggingFace model
+domain = DomainConfig(
+    domain_id="fast_domain",
+    model_name="gpt2",  # HuggingFace models don't need prefix
+    # ... other config
+)
+
+# Method 4: Use tier-based configs
 from mdsa.models import ModelConfig
 
 # Tier 1: Fast, small models (GPT-2)
@@ -213,24 +243,47 @@ tier3_config = ModelConfig.for_tier3()
 ### Multi-Model Setup
 
 ```python
-# Different models for different domains
-domains = {
-    'finance': DomainConfig(
-        domain_id="finance",
-        model_name="llama3.2:3b",  # Larger for complex reasoning
-        # ...
-    ),
-    'casual': DomainConfig(
-        domain_id="casual",
-        model_name="gpt2",  # Smaller for simple chat
-        # ...
-    ),
-    'technical': DomainConfig(
-        domain_id="technical",
-        model_name="qwen2.5:3b-instruct",  # Instruction-tuned
-        # ...
-    )
-}
+# Different models for different domains based on requirements
+from mdsa import MDSA
+
+# Initialize with Ollama support
+mdsa = MDSA(
+    ollama_base_url="http://localhost:11434",
+    enable_rag=True
+)
+
+# Domain 1: Fast responses (high-volume)
+mdsa.register_domain(
+    name="quick_faq",
+    description="Simple FAQs and quick queries",
+    keywords=["what", "when", "who", "where"],
+    model_name="ollama://gemma3:1b"  # Fastest, best for high throughput
+)
+
+# Domain 2: Complex reasoning (finance)
+mdsa.register_domain(
+    name="finance",
+    description="Financial analysis and calculations",
+    keywords=["calculate", "analyze", "budget", "invest"],
+    model_name="ollama://llama3.2:3b-instruct-q4_0"  # Better quality
+)
+
+# Domain 3: Instruction following (technical)
+mdsa.register_domain(
+    name="technical",
+    description="Technical documentation and code help",
+    keywords=["code", "error", "debug", "implement"],
+    model_name="ollama://qwen3:1.7b"  # Good for technical content
+)
+
+# Domain 4: Fallback (HuggingFace model for offline testing)
+mdsa.register_domain(
+    name="general",
+    description="General conversation",
+    keywords=["general", "chat", "talk"],
+    model_name="gpt2",  # HuggingFace model (no ollama:// prefix)
+    is_default=True
+)
 ```
 
 ---

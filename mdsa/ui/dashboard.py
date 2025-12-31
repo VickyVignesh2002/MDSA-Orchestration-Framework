@@ -25,16 +25,37 @@ from flask_limiter.util import get_remote_address
 # Import MDSA components
 try:
     from mdsa import __version__
-    from mdsa.monitoring import RequestLogger, MetricsCollector
-    from mdsa.models import ModelManager
-    from mdsa.utils import HardwareDetector
-    from mdsa.ui.auth import UserManager, get_user_manager, User
 except ImportError:
-    # For standalone testing
     __version__ = "1.0.0"
+
+try:
+    from mdsa.monitoring import RequestLogger, MetricsCollector
+except ImportError:
+    RequestLogger = None
+    MetricsCollector = None
+
+try:
+    from mdsa.models import ModelManager
+except ImportError:
+    ModelManager = None
+
+try:
+    from mdsa.utils import HardwareDetector
+except ImportError:
+    HardwareDetector = None
+
+# Import auth components separately - critical for authentication
+try:
+    from mdsa.ui.auth import UserManager, get_user_manager, User
+except ImportError as e:
     UserManager = None
     User = None
     get_user_manager = None
+    import warnings
+    warnings.warn(
+        f"Auth module import failed: {e}. Dashboard authentication will be disabled.",
+        RuntimeWarning
+    )
 
 
 class DashboardServer:
@@ -89,15 +110,9 @@ class DashboardServer:
 
         # Initialize authentication
         if self.enable_auth and UserManager:
+            from mdsa.ui.auth import setup_auth  # Use existing helper function
             self.user_manager = get_user_manager()
-            self.login_manager = LoginManager()
-            self.login_manager.init_app(self.app)
-            self.login_manager.login_view = 'login'
-            self.login_manager.login_message = 'Please log in to access the dashboard.'
-
-            @self.login_manager.user_loader
-            def load_user(user_id):
-                return self.user_manager.get_user(user_id)
+            self.login_manager = setup_auth(self.app)  # Proper LoginManager initialization
         else:
             self.user_manager = None
             self.login_manager = None
@@ -166,22 +181,20 @@ class DashboardServer:
         @self.app.route('/welcome')
         def welcome():
             """Welcome page."""
-            if self.enable_auth:
-                @login_required
-                def protected_welcome():
-                    return render_template('welcome.html', version=__version__, user=current_user)
-                return protected_welcome()
-            return render_template('welcome.html', version=__version__)
+            if self.enable_auth and not current_user.is_authenticated:
+                return redirect(url_for('login'))
+
+            user = current_user if self.enable_auth else None
+            return render_template('welcome.html', version=__version__, user=user)
 
         @self.app.route('/monitor')
         def monitor():
             """Monitoring page."""
-            if self.enable_auth:
-                @login_required
-                def protected_monitor():
-                    return render_template('monitor.html', version=__version__, user=current_user)
-                return protected_monitor()
-            return render_template('monitor.html', version=__version__)
+            if self.enable_auth and not current_user.is_authenticated:
+                return redirect(url_for('login'))
+
+            user = current_user if self.enable_auth else None
+            return render_template('monitor.html', version=__version__, user=user)
 
         # API routes with rate limiting
         @self.app.route('/api/metrics')

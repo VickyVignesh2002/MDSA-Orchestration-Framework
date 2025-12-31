@@ -4,7 +4,7 @@ MDSA Framework - Multi-Domain Small Language Model Agentic Orchestration Framewo
 A production-ready Python framework for orchestrating domain-specialized small language models.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __author__ = "MDSA Team"
 __license__ = "Apache 2.0"
 

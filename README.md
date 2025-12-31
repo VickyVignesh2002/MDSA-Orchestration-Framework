@@ -181,6 +181,104 @@ MDSA (Multi-Domain Specialized Agentic Orchestration) is a **domain-agnostic fra
 
 ---
 
+## ⚠️ Known Issues (v1.0.0)
+
+### Dashboard Authentication Error (FIXED in v1.0.1)
+**Issue**: Dashboard crashes with `AttributeError: 'Flask' object has no attribute 'login_manager'` when authentication is enabled.
+
+**Symptoms**:
+- Error occurs when starting dashboard with `enable_auth=True` (default)
+- Full error: `AttributeError: 'Flask' object has no attribute 'login_manager'`
+
+**Workaround for v1.0.0**:
+```python
+from mdsa.ui.dashboard import DashboardServer
+
+dashboard = DashboardServer(
+    host="127.0.0.1",
+    port=5000,
+    enable_auth=False  # Disable authentication to avoid the bug
+)
+dashboard.run()
+```
+
+**Permanent Fix**: Upgrade to v1.0.1 or later:
+```bash
+pip install --upgrade mdsa-framework
+```
+
+**Root Cause**: LoginManager initialization order issue in dashboard.py - now fixed.
+
+---
+
+### Ollama Connection Issues
+
+**Issue**: "Connection refused" or "Ollama not accessible" when trying to use Ollama models.
+
+**Common Errors**:
+- `ConnectionRefusedError: [Errno 111] Connection refused`
+- `ollama : The term 'ollama' is not recognized`
+- Model not found errors
+
+**Prerequisites**:
+1. **Install Ollama**: Download from [https://ollama.ai](https://ollama.ai)
+2. **Start Ollama server**:
+   ```bash
+   ollama serve
+   ```
+3. **Pull a model**:
+   ```bash
+   # Recommended lightweight models
+   ollama pull gemma3:1b        # Fast, 1B parameters
+   ollama pull qwen3:1.7b       # Balanced, 1.7B parameters
+   ollama pull llama3.2:3b-instruct-q4_0  # Better quality, 3B parameters
+   ```
+4. **Verify Ollama is running**:
+   ```bash
+   curl http://localhost:11434/api/tags
+   ```
+
+**Usage in MDSA**:
+```python
+from mdsa import MDSA
+
+mdsa = MDSA(
+    ollama_base_url="http://localhost:11434",  # Default Ollama URL
+    enable_rag=True
+)
+
+mdsa.register_domain(
+    "tech_support",
+    "Technical support queries",
+    keywords=["error", "bug", "issue"],
+    model_name="ollama://gemma3:1b"  # Use ollama:// prefix
+)
+```
+
+**GPU Configuration** (Optional):
+```bash
+# Windows (PowerShell)
+$env:OLLAMA_NUM_GPU=1
+$env:CUDA_VISIBLE_DEVICES=0
+
+# Linux/macOS
+export OLLAMA_NUM_GPU=1
+export CUDA_VISIBLE_DEVICES=0
+```
+
+**Detailed Guides**:
+- [Ollama Setup Guide](docs/OLLAMA_SETUP.md) (Coming in v1.0.1)
+- [GPU Configuration Guide](docs/GPU_CONFIGURATION.md) (Coming in v1.0.1)
+- [Troubleshooting Guide](docs/OLLAMA_TROUBLESHOOTING.md) (Coming in v1.0.1)
+
+---
+
+### Report Issues
+
+Found a bug or have feedback? Please report it on our [GitHub Issues](https://github.com/VickyVignesh2002/MDSA-Orchestration-Framework/issues) page.
+
+---
+
 ## 🚀 Quick Start
 
 ### Installation

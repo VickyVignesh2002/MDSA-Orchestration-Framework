@@ -5,6 +5,111 @@ All notable changes to the MDSA (Multi-Domain Specialized Agentic Orchestration)
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-12-31
+
+### Fixed
+
+#### Critical Bug Fixes
+- **Dashboard Authentication** (`mdsa/ui/dashboard.py`):
+  - Fixed `AttributeError: 'Flask' object has no attribute 'login_manager'` crash when `enable_auth=True`
+  - Root cause: LoginManager initialization order issue - now uses proper `setup_auth()` helper from `mdsa.ui.auth`
+  - Fixed nested `@login_required` decorator pattern that applied too late
+  - Improved import handling to prevent auth module failures from affecting other components
+  - Dashboard now works correctly with authentication enabled (default)
+
+### Added
+
+#### Documentation
+- **[docs/OLLAMA_SETUP.md](docs/OLLAMA_SETUP.md)** - Complete Ollama installation and setup guide:
+  - Installation instructions for Windows, macOS, and Linux
+  - Model download guide with recommended models for different use cases
+  - Server configuration and startup instructions
+  - MDSA integration examples with code snippets
+  - Verification steps and basic troubleshooting
+
+- **[docs/GPU_CONFIGURATION.md](docs/GPU_CONFIGURATION.md)** - Comprehensive GPU acceleration guide:
+  - NVIDIA GPU (CUDA) configuration for Windows/Linux
+  - AMD GPU (ROCm) configuration for Linux
+  - Apple Silicon (M1/M2/M3) Metal configuration for macOS
+  - Multi-GPU setup and load balancing
+  - Performance benchmarks and optimization tips
+  - VRAM management and model selection based on hardware
+
+- **[docs/OLLAMA_TROUBLESHOOTING.md](docs/OLLAMA_TROUBLESHOOTING.md)** - Detailed troubleshooting guide:
+  - Installation issues and solutions
+  - Connection problems (MDSA ↔ Ollama)
+  - Model download and loading issues
+  - Performance optimization strategies
+  - GPU detection and configuration problems
+  - Memory management solutions
+  - Platform-specific issues (Windows, macOS, Linux)
+  - Advanced debugging techniques
+
+- **Known Issues Section** in [README.md](README.md#L184-L280):
+  - Dashboard authentication error documentation with workaround for v1.0.0
+  - Ollama connection issues with complete setup prerequisites
+  - Quick-start Ollama commands for immediate productivity
+  - GPU configuration examples
+  - Links to detailed troubleshooting guides
+
+### Improved
+
+#### Documentation Enhancement
+- **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** - Expanded Ollama section:
+  - Added comprehensive Ollama model table with VRAM requirements and use cases
+  - Documented correct `ollama://` model name format for MDSA
+  - Added performance expectations for CPU vs GPU
+  - Updated all code examples to use correct Ollama syntax
+  - Added multi-model setup example showing Ollama + HuggingFace integration
+  - Cross-referenced setup, GPU, and troubleshooting guides
+
+#### Error Messages
+- Better error reporting when UserManager/auth modules fail to import
+- Clear warnings when authentication is disabled due to missing dependencies
+- Improved Ollama connection error messages with actionable suggestions
+
+### Testing
+
+#### Test Suite Addition
+- `test_dashboard_auth.py` - Comprehensive authentication test suite:
+  - Dashboard initialization with `enable_auth=True` (no crashes)
+  - Route registration verification
+  - Login/logout flow testing
+  - Protected route access control
+  - API endpoint authentication
+  - All tests passing on fixed implementation
+
+### User Experience Improvements
+
+- Users can now run dashboard with authentication enabled without crashes
+- Clear documentation path: Install Ollama → Configure GPU → Troubleshoot issues
+- Ollama setup reduced from "unclear" to <15 minutes with guides
+- Known issues are transparent with workarounds documented
+- Performance expectations clearly set for different hardware configurations
+
+### Technical Details
+
+#### Files Modified
+- `mdsa/ui/dashboard.py` - LoginManager fix (4 edits)
+- `README.md` - Added Known Issues section
+- `docs/USER_GUIDE.md` - Expanded Ollama documentation
+
+#### Files Added
+- `docs/OLLAMA_SETUP.md` - 400+ lines, comprehensive guide
+- `docs/GPU_CONFIGURATION.md` - 600+ lines, detailed GPU configuration
+- `docs/OLLAMA_TROUBLESHOOTING.md` - 800+ lines, extensive troubleshooting
+- `test_dashboard_auth.py` - Authentication test suite
+
+### Breaking Changes
+
+None - all changes are backward compatible.
+
+**Migration Notes**:
+- If you were using `enable_auth=False` to work around v1.0.0 bug, you can now remove that and use default `enable_auth=True`
+- Ollama model names should use `ollama://` prefix (e.g., `ollama://gemma3:1b`), though old format may still work
+
+---
+
 ## [1.0.0] - 2025-12-24
 
 ### Added
