@@ -48,7 +48,7 @@ class ModelConfig:
     """
     model_name: str
     tier: ModelTier
-    device: str = "cpu"
+    device: str = "auto"  # Will be auto-detected based on hardware availability
     quantization: QuantizationType = QuantizationType.NONE
     max_length: int = 512
     batch_size: int = 1
@@ -71,6 +71,10 @@ class ModelConfig:
         if isinstance(self.quantization, str):
             self.quantization = QuantizationType(self.quantization)
 
+        # Auto-detect device if set to "auto"
+        if self.device == "auto":
+            self.device = self._auto_detect_device()
+
         # Validate max_length
         if self.max_length <= 0:
             raise ValueError(f"max_length must be positive, got {self.max_length}")
@@ -78,6 +82,23 @@ class ModelConfig:
         # Validate batch_size
         if self.batch_size <= 0:
             raise ValueError(f"batch_size must be positive, got {self.batch_size}")
+
+    def _auto_detect_device(self) -> str:
+        """Auto-detect best available device based on tier and hardware."""
+        try:
+            from mdsa.utils.hardware import HardwareDetector
+            hw = HardwareDetector()
+
+            # Get best device based on model tier
+            if self.tier == ModelTier.TIER1:
+                return hw.best_device_for_tier1()  # Typically CPU for low latency
+            elif self.tier == ModelTier.TIER2:
+                return hw.best_device_for_tier2()  # GPU if available, else CPU
+            else:  # TIER3
+                return hw.best_device_for_tier3()  # Prefer GPU for large models
+        except Exception:
+            # Fallback to CPU if hardware detection fails
+            return "cpu"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""

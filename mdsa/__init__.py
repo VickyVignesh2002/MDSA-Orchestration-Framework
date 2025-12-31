@@ -4,7 +4,7 @@ MDSA Framework - Multi-Domain Small Language Model Agentic Orchestration Framewo
 A production-ready Python framework for orchestrating domain-specialized small language models.
 """
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __author__ = "MDSA Team"
 __license__ = "Apache 2.0"
 
@@ -35,6 +35,24 @@ from mdsa.domains import (
 from mdsa.monitoring import (
     MonitoringService,
     RequestMetric,
+)
+
+# RAG (Retrieval-Augmented Generation) - Phase 3
+try:
+    from mdsa.rag import DualRAG, LocalRAG, GlobalRAG, RAG_AVAILABLE
+except ImportError:
+    DualRAG = None
+    LocalRAG = None
+    GlobalRAG = None
+    RAG_AVAILABLE = False
+
+# Tools - Framework tools and external API integrations
+from mdsa.tools import (
+    Tool,
+    ToolResult,
+    ToolRegistry,
+    ToolManager,
+    SmartToolExecutor,
 )
 
 __all__ = [
@@ -71,4 +89,15 @@ __all__ = [
     # Monitoring & Logging (Phase 5)
     "MonitoringService",
     "RequestMetric",
+    # RAG (Phase 3)
+    "DualRAG",
+    "LocalRAG",
+    "GlobalRAG",
+    "RAG_AVAILABLE",
+    # Tools
+    "Tool",
+    "ToolResult",
+    "ToolRegistry",
+    "ToolManager",
+    "SmartToolExecutor",
 ]

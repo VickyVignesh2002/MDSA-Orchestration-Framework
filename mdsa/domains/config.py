@@ -29,7 +29,7 @@ class DomainConfig:
     model_name: str = "gpt2"  # Default to small model for testing
     model_tier: ModelTier = ModelTier.TIER3
     quantization: QuantizationType = QuantizationType.NONE  # Default to no quant for testing
-    device: str = "cpu"  # Will be auto-detected if not specified
+    device: str = "auto"  # Will be auto-detected based on hardware availability
 
     # Prompt configuration
     system_prompt: str = ""
@@ -65,6 +65,30 @@ class DomainConfig:
             raise ValueError("max_tokens must be positive")
         if not 0.0 <= self.temperature <= 2.0:
             raise ValueError("temperature must be between 0 and 2")
+
+        # Auto-detect device if set to "auto"
+        if self.device == "auto":
+            self.device = self._auto_detect_device()
+
+    def _auto_detect_device(self) -> str:
+        """Auto-detect best available device based on model tier and hardware."""
+        try:
+            # Use DeviceStrategy for smart device selection
+            device, _ = DeviceStrategy.select_for_phi2(prefer_gpu=True)
+            return device
+        except Exception:
+            # Fallback: try HardwareDetector directly
+            try:
+                from mdsa.utils.hardware import HardwareDetector
+                hw = HardwareDetector()
+                if self.model_tier == ModelTier.TIER1:
+                    return hw.best_device_for_tier1()
+                elif self.model_tier == ModelTier.TIER2:
+                    return hw.best_device_for_tier2()
+                else:
+                    return hw.best_device_for_tier3()
+            except Exception:
+                return "cpu"
 
     def __repr__(self) -> str:
         return (

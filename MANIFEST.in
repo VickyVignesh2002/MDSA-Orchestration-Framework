@@ -46,6 +46,10 @@ prune .claude
 prune data
 prune build
 prune dist
+prune examples/*/.venv
+prune examples/*/venv
+prune */.venv
+prune */venv
 
 # Exclude Generated/Cache Files
 recursive-exclude * __pycache__
