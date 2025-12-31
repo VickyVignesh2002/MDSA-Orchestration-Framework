@@ -1,0 +1,49 @@
+{
+  "accuracy": 60.9375,
+  "correct": 39,
+  "total": 64,
+  "domain_metrics": {
+    "medical_billing": {
+      "precision": 38.095238095238095,
+      "recall": 50.0,
+      "f1_score": 43.24324324324324,
+      "support": 16
+    },
+    "medical_coding": {
+      "precision": 90.0,
+      "recall": 56.25,
+      "f1_score": 69.23076923076923,
+      "support": 16
+    },
+    "appointment_scheduling": {
+      "precision": 70.58823529411765,
+      "recall": 75.0,
+      "f1_score": 72.72727272727273,
+      "support": 16
+    },
+    "claims_processing": {
+      "precision": 62.5,
+      "recall": 62.5,
+      "f1_score": 62.5,
+      "support": 16
+    }
+  },
+  "avg_confidence": 0.9024121927097439,
+  "confidence_bins": {
+    "medium": {
+      "accuracy": 45.45454545454545,
+      "count": 11,
+      "percentage": 17.1875
+    },
+    "high": {
+      "accuracy": 68.29268292682927,
+      "count": 41,
+      "percentage": 64.0625
+    },
+    "low": {
+      "accuracy": 50.0,
+      "count": 12,
+      "percentage": 18.75
+    }
+  }
+}
