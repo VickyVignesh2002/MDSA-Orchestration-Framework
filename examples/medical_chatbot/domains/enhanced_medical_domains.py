@@ -21,15 +21,31 @@ from mdsa.models.config import ModelTier, QuantizationType
 from typing import Optional, List
 
 # Development model (lightweight, runs via Ollama locally)
-# DEVELOPMENT_MODEL = "ollama://llama3.2:3b-instruct-q4_0"  # Local model (commented out)
+# Set USE_LOCAL_MODEL=True to use local models for testing without cloud connectivity
+USE_LOCAL_MODEL = True  # Toggle this for local vs cloud testing
 
-# Cloud Ollama Models (optimized for each domain)
-# Choose models based on domain-specific capabilities
-CLOUD_MEDICAL_CODING_MODEL = "ollama://kimi-k2-thinking:cloud"  # Precise reasoning for coding
-CLOUD_CLINICAL_MODEL = "ollama://deepseek-v3.1:671b-cloud"  # Complex medical reasoning
-CLOUD_BIOMEDICAL_MODEL = "ollama://qwen3-coder:480b-cloud"  # Structured extraction
-CLOUD_RADIOLOGY_MODEL = "ollama://qwen3-vl:235b-instruct-cloud"  # Vision-language for imaging
-CLOUD_QA_LITE_MODEL = "ollama://gpt-oss:120b-cloud"  # General medical Q&A
+LOCAL_MODEL = "ollama://llama3.2:3b-instruct-q4_0"  # Local model for testing
+
+# Cloud Ollama Models (optimized for each domain - require cloud connectivity)
+_CLOUD_MEDICAL_CODING_MODEL = "ollama://kimi-k2-thinking:cloud"  # Precise reasoning for coding
+_CLOUD_CLINICAL_MODEL = "ollama://deepseek-v3.1:671b-cloud"  # Complex medical reasoning
+_CLOUD_BIOMEDICAL_MODEL = "ollama://qwen3-coder:480b-cloud"  # Structured extraction
+_CLOUD_RADIOLOGY_MODEL = "ollama://qwen3-vl:235b-instruct-cloud"  # Vision-language for imaging
+_CLOUD_QA_LITE_MODEL = "ollama://gpt-oss:120b-cloud"  # General medical Q&A
+
+# Use local or cloud models based on toggle
+if USE_LOCAL_MODEL:
+    CLOUD_MEDICAL_CODING_MODEL = LOCAL_MODEL
+    CLOUD_CLINICAL_MODEL = LOCAL_MODEL
+    CLOUD_BIOMEDICAL_MODEL = LOCAL_MODEL
+    CLOUD_RADIOLOGY_MODEL = LOCAL_MODEL
+    CLOUD_QA_LITE_MODEL = LOCAL_MODEL
+else:
+    CLOUD_MEDICAL_CODING_MODEL = _CLOUD_MEDICAL_CODING_MODEL
+    CLOUD_CLINICAL_MODEL = _CLOUD_CLINICAL_MODEL
+    CLOUD_BIOMEDICAL_MODEL = _CLOUD_BIOMEDICAL_MODEL
+    CLOUD_RADIOLOGY_MODEL = _CLOUD_RADIOLOGY_MODEL
+    CLOUD_QA_LITE_MODEL = _CLOUD_QA_LITE_MODEL
 
 # Production models (specialized medical SLMs - for future deployment)
 # PROD_CLINICAL_MODEL = "dmis-lab/llama-3-meerkat-8b-v1.0"

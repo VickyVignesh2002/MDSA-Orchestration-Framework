@@ -518,10 +518,30 @@ class DualRAG:
         if CHROMADB_AVAILABLE and PLATFORM_DETECTOR_AVAILABLE:
             try:
                 self.vector_db_path = get_vector_db_path()
-                self.chroma_client = chromadb.PersistentClient(
-                    path=str(self.vector_db_path),
-                    settings=Settings(anonymized_telemetry=False)
-                )
+
+                # Try to initialize ChromaDB with error recovery
+                try:
+                    self.chroma_client = chromadb.PersistentClient(
+                        path=str(self.vector_db_path),
+                        settings=Settings(anonymized_telemetry=False)
+                    )
+                except Exception as chroma_error:
+                    # ChromaDB corruption or Rust binding error - try to recover
+                    error_str = str(chroma_error)
+                    if "range" in error_str or "panic" in error_str.lower() or "PanicException" in type(chroma_error).__name__:
+                        logger.warning(f"[RAG] ChromaDB database corrupted, attempting recovery...")
+                        import shutil
+                        if self.vector_db_path.exists():
+                            shutil.rmtree(self.vector_db_path)
+                            logger.info(f"[RAG] Cleared corrupted database at {self.vector_db_path}")
+                        self.vector_db_path.mkdir(parents=True, exist_ok=True)
+                        # Retry
+                        self.chroma_client = chromadb.PersistentClient(
+                            path=str(self.vector_db_path),
+                            settings=Settings(anonymized_telemetry=False)
+                        )
+                    else:
+                        raise
 
                 # Global collection
                 self.global_collection = self.chroma_client.get_or_create_collection(
@@ -538,8 +558,9 @@ class DualRAG:
                 # Load existing documents from disk
                 self._load_from_disk()
 
-            except Exception as e:
-                logger.warning(f"[RAG] ChromaDB initialization failed: {e}")
+            except BaseException as e:
+                # Catch ALL exceptions including Rust panics
+                logger.warning(f"[RAG] ChromaDB initialization failed: {type(e).__name__}: {e}")
                 logger.warning("[RAG] Falling back to in-memory RAG only")
                 self.chroma_client = None
         else:

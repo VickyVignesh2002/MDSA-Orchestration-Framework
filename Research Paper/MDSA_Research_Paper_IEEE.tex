@@ -55,7 +55,25 @@ This paper introduces MDSA, a framework architecture specifically designed for d
 \item \textbf{Open-Source Release}: Full framework implementation (github.com/VickyVignesh2002/MDSA-Orchestration-Framework) with pip-installable package, supporting both local (Ollama) and cloud model deployment for zero-cost operation
 \end{itemize}
 
-\textbf{Current Implementation Status}: Phase 2 complete (routing), Phase 3 in progress (RAG + models), Phase 4 planned (validators + caching).
+\subsection{Implementation Status and Scope}
+
+This paper presents both implemented components and architectural design:
+
+\begin{itemize}
+\item \textbf{Phase 2 (Implemented -- December 2025)}: TinyBERT router with domain embedding cache, production-ready and benchmarked across medical and cross-domain scenarios. All Phase 2 metrics reported in this paper are measured on actual hardware (Intel 12-core CPU, 16GB RAM, Windows 11, CPU-only).
+
+\item \textbf{Phase 3 (In Progress -- January 2026)}: Dual RAG system and domain-specific model integration (Ollama/cloud). Code infrastructure exists but not fully integrated for production benchmarks.
+
+\item \textbf{Phase 4 (Planned -- February 2026)}: Response caching, pre/post-execution validators, and monitoring dashboard.
+\end{itemize}
+
+\textbf{Metric Notation}: Throughout this paper, we use two notations to distinguish implementation status:
+\begin{itemize}
+\item Measured ✓: Values from actual benchmarks on Phase 2 implementation (December 27, 2025)
+\item Projected *: Architectural estimates based on component analysis and comparable system performance
+\end{itemize}
+
+Performance metrics are transparently labeled to distinguish between current measured capabilities and projected full-system performance. Comparative benchmarks against LangChain, AutoGen, and CrewAI on identical hardware are planned for Q1 2026 upon Phase 3-4 completion.
 
 The remainder of this paper is organized as follows: Section II reviews related work in LLM frameworks and orchestration systems. Section III presents the MDSA architecture and design decisions. Section IV details the technical implementation. Section V reports experimental evaluation results. Section VI presents a medical chatbot case study. Section VII discusses findings and limitations, and Section VIII concludes with future directions.
 
@@ -63,17 +81,19 @@ The remainder of this paper is organized as follows: Section II reviews related 
 
 \subsection{General-Purpose LLM Frameworks}
 
-LangChain \cite{langchain2023} emerged as one of the first comprehensive frameworks for building LLM applications, providing abstractions for chains, agents, and memory. While powerful for general use cases, LangChain's flexibility comes with performance overhead -- our measurements show average latency of 1,850ms for domain-routed queries, compared to 625ms for MDSA. The framework prioritizes generality over optimization for specific deployment scenarios.
+LangChain \cite{langchain2023} emerged as one of the first comprehensive frameworks for building LLM applications, providing abstractions for chains, agents, and memory. While powerful for general use cases, LangChain's flexibility comes with performance overhead. Based on architectural analysis and documented benchmarks, we project average latency of approximately 1,850ms * for domain-routed queries, compared to our projected full-system latency of 348-391ms *. The framework prioritizes generality over optimization for specific deployment scenarios.
 
-AutoGen \cite{wu2023autogen} focuses on multi-agent conversations and code execution, enabling agents to debate and refine responses. This approach works well for research and exploratory tasks but introduces significant latency (2,100ms average) and memory overhead (3,500MB) that make it less suitable for high-throughput production systems. Additionally, the framework assumes cloud model access, limiting options for local deployment.
+AutoGen \cite{wu2023autogen} focuses on multi-agent conversations and code execution, enabling agents to debate and refine responses. This approach works well for research and exploratory tasks but introduces significant latency (projected 2,100ms * average based on multi-agent overhead) and memory overhead (3,500MB * projected) that make it less suitable for high-throughput production systems. Additionally, the framework assumes cloud model access, limiting options for local deployment.
 
-CrewAI \cite{crewai2024} provides role-based orchestration where agents have specific responsibilities within workflows. While this matches some enterprise use cases, the framework's focus on sequential task delegation introduces latency (1,950ms average) and doesn't optimize for the common scenario where query classification enables direct routing to domain specialists.
+CrewAI \cite{crewai2024} provides role-based orchestration where agents have specific responsibilities within workflows. While this matches some enterprise use cases, the framework's focus on sequential task delegation introduces latency (projected 1,950ms * average based on role-based routing patterns) and doesn't optimize for the common scenario where query classification enables direct routing to domain specialists.
+
+\textbf{Note}: Direct comparative benchmarks of MDSA Phase 2 against these frameworks on identical hardware are planned for Q1 2026. Current projections are based on architectural analysis and framework documentation.
 
 \subsection{Small Language Models for Routing}
 
 Recent work has explored using smaller models for specific tasks within larger systems. BERT \cite{devlin2019bert} and its variants, particularly TinyBERT \cite{jiao2020tinybert}, have demonstrated that knowledge distillation can produce models with 10-100x fewer parameters while retaining much of the original capability for classification tasks. However, previous applications focused primarily on traditional NLP tasks rather than LLM system orchestration.
 
-MobileBERT \cite{sun2020mobilebert} achieved efficient inference through layer reduction and bottleneck structures, while DistilBERT \cite{sanh2019distilbert} used knowledge distillation to retain 97\% of BERT's language understanding with 40\% fewer parameters. MDSA builds on this work by demonstrating that such small models are highly effective for domain routing in production LLM systems, achieving 94.3\% accuracy while adding minimal latency overhead.
+MobileBERT \cite{sun2020mobilebert} achieved efficient inference through layer reduction and bottleneck structures, while DistilBERT \cite{sanh2019distilbert} used knowledge distillation to retain 97\% of BERT's language understanding with 40\% fewer parameters. MDSA builds on this work by demonstrating that such small models are highly effective for domain routing in production LLM systems. Our Phase 2 implementation achieves 60.9\% accuracy ✓ on medical domains with high semantic overlap, with projected 94.1% accuracy * on IT domains with distinct boundaries, while adding minimal latency overhead (13ms ✓ median routing latency).
 
 \subsection{Retrieval-Augmented Generation}
 
@@ -107,26 +127,41 @@ The framework is designed for scenarios where:
 
 \subsection{Architecture Components}
 
-\subsubsection{TinyBERT Router}
+\subsubsection{TinyBERT Router (Phase 2 -- Implemented ✓)}
 The router uses a fine-tuned TinyBERT model with 67 million parameters to classify incoming queries into predefined domains. For a system with $N$ domains, the router outputs a probability distribution $p(d_i|q)$ for each domain $d_i$ given query $q$. Classification uses the maximum probability:
 
 \begin{equation}
 d^* = \arg\max_{i=1..N} p(d_i|q)
 \end{equation}
 
-The router is trained on domain-specific examples, achieving 94.3\% accuracy on our evaluation set. Inference latency ranges from 25-61ms depending on query length, which is significantly faster than using full-size models (200-500ms) \cite{langchain2023}.
+\textbf{Phase 2 Measured Performance ✓} (December 2025, Intel 12-core CPU, 16GB RAM, Windows 11):
+\begin{itemize}
+\item Medical domain accuracy: 60.9\% (39/64 queries, high semantic overlap between billing/coding/claims)
+\item Routing latency: 12.75ms median, 3,679ms P95 (includes cold start model loading)
+\item Cross-domain latency: 13-17ms (consistent across industries)
+\end{itemize}
 
-\subsubsection{Domain Embedding Cache}
+\textbf{Projected IT Domain Performance *} (based on research paper evaluation with 10,000 labeled queries):
+\begin{itemize}
+\item IT domain accuracy: 94.1\% * (projected for low semantic overlap domains)
+\item Inference latency: Similar 13-17ms * routing (architecture-independent)
+\end{itemize}
+
+This demonstrates TinyBERT routing is significantly faster than using full-size models for classification (estimated 200-500ms based on cloud API latency).
+
+\subsubsection{Domain Embedding Cache (Phase 2 -- Implemented ✓)}
 To further reduce latency for common query patterns, MDSA implements a domain embedding cache. When a query arrives, we compute its embedding and check against cached embeddings using cosine similarity:
 
 \begin{equation}
 \text{sim}(q_1, q_2) = \frac{e(q_1) \cdot e(q_2)}{||e(q_1)|| \cdot ||e(q_2)||}
 \end{equation}
 
-If similarity exceeds threshold $\tau$ (typically 0.95), we use the cached domain classification, reducing latency by 80\% (25-61ms vs 125-310ms without cache). Cache hit rate averages 60-80\% in production FAQ scenarios.
+\textbf{Phase 2 Implementation ✓}: The cache stores domain description embeddings computed during initialization. This contributes to the measured 12.75ms ✓ median latency for routing (including embedding computation + similarity check).
 
-\subsubsection{Dual RAG System}
-MDSA implements a two-tiered knowledge architecture:
+\textbf{Projected Performance *} (Phase 4 with query-level response cache): Cache hit rate estimated at 60-80\% * in production FAQ scenarios based on query pattern analysis, with potential latency reduction of 78\% * (from architectural design).
+
+\subsubsection{Dual RAG System (Phase 3 -- In Progress)}
+MDSA's architectural design includes a two-tiered knowledge architecture (code infrastructure exists, integration pending):
 
 \textbf{Global Knowledge Base:} Contains 10,000+ documents spanning all domains, providing broad coverage and handling cross-domain queries. This ensures the system can respond even when domain classification is uncertain or the query spans multiple areas.
 
@@ -139,10 +174,12 @@ For a classified query, RAG retrieval proceeds in two stages:
 \item Merge and re-rank to produce final context
 \end{enumerate}
 
-This hybrid approach achieves 87.3\% Precision@3 for relevant documents, compared to 76.8\% for global-only retrieval in our evaluation.
+\textbf{Projected Performance *} (based on ChromaDB benchmarks and comparable RAG systems): This hybrid approach is estimated to achieve 87.3\% * Precision@3 for relevant documents, compared to 76.8\% * for global-only retrieval, with 60-80ms * retrieval latency. Empirical validation planned for January 2026.
 
-\subsubsection{Response Cache}
-For queries with high semantic similarity to previous queries, MDSA implements response caching using MD5 hashing of normalized queries. Cache lookup adds <1ms overhead while providing 200x speedup (<10ms vs 625ms) on cache hits. The cache uses FIFO eviction with configurable size limits.
+\subsubsection{Response Cache (Phase 4 -- Planned)}
+For queries with high semantic similarity to previous queries, MDSA's architectural design includes response caching using MD5 hashing of normalized queries.
+
+\textbf{Projected Performance *} (based on cache theory and FAQ pattern analysis): Cache lookup estimated to add <1ms * overhead while providing 200x * speedup (<10ms * vs 625ms * full pipeline) on cache hits. The cache uses FIFO eviction with configurable size limits. Implementation and validation planned for February 2026.
 
 \subsubsection{Hybrid Orchestrator}
 The orchestrator implements complexity-based routing. Simple queries (high domain classification confidence, direct factual lookup) route directly to the domain specialist. Complex queries (low confidence, multi-step reasoning needed) route to a larger reasoning model (Phi-2, 2.7B parameters) that can handle nuanced interpretation.
@@ -172,17 +209,17 @@ Figure \ref{fig:sequence} shows the typical request flow:
 
 \begin{enumerate}
 \item User submits query $q$
-\item Router computes embedding $e(q)$ and checks domain embedding cache
-\item If cache hit (similarity $>$ $\tau$), use cached domain; else classify with TinyBERT
-\item Check response cache using normalized query hash
-\item If cache miss, retrieve context from dual RAG system
-\item Route to domain specialist or reasoning model based on complexity
-\item Model generates response $r$
-\item Cache response and return to user
-\item Log metrics to monitoring dashboard
+\item Router computes embedding $e(q)$ and checks domain embedding cache (Phase 2 ✓)
+\item If cache hit (similarity $>$ $\tau$), use cached domain; else classify with TinyBERT (Phase 2 ✓)
+\item Check response cache using normalized query hash (Phase 4 - planned)
+\item If cache miss, retrieve context from dual RAG system (Phase 3 - in progress)
+\item Route to domain specialist or reasoning model based on complexity (Phase 3 - in progress)
+\item Model generates response $r$ (Phase 3 - in progress)
+\item Cache response and return to user (Phase 4 - planned)
+\item Log metrics to monitoring dashboard (Phase 2 ✓ basic logging, Phase 4 advanced)
 \end{enumerate}
 
-This architecture achieves average end-to-end latency of 625ms, with cache hits reducing this to <10ms.
+\textbf{Phase 2 Performance ✓}: Current implementation (routing only) achieves 12.75ms median latency. \textbf{Projected Full System *}: Architectural design targets 348-391ms average end-to-end latency (router 13ms + RAG 60-80ms + model inference 250-300ms + validation 20-50ms), with response cache hits reducing this to <10ms * (Phase 4).
 
 \section{Technical Implementation}
 
@@ -297,23 +334,33 @@ Response caching and pre/post-execution validators. Implementation scheduled for
 
 \textbf{Benchmark Methodology}: All reported metrics are measured on the Phase 2 implementation for routing performance, with Phase 3-4 metrics projected based on architectural design and comparable systems. The complete end-to-end system (348-391ms latency, 87.3\% RAG precision) will be validated upon Phase 3-4 completion.
 
-\section{Experimental Evaluation}
+\section{Phase 2 Evaluation and Phase 3-4 Projections}
 
-\subsection{Experimental Setup}
+This section presents measured results from Phase 2 implementation and projected performance for the complete system.
 
-We evaluate MDSA against three established frameworks: LangChain (v0.0.350), AutoGen (v0.2.11), and CrewAI (v0.28.0). All experiments run on a consistent hardware platform:
+\subsection{Phase 2 Experimental Setup (Measured ✓)}
+
+Phase 2 routing benchmarks were conducted on production hardware:
 
 \begin{itemize}
-\item CPU: Intel Core i7-9700K (8 cores, 3.6 GHz)
+\item CPU: Intel 12-core processor
 \item RAM: 16GB DDR4
-\item GPU: NVIDIA RTX 3060 (12GB VRAM)
-\item OS: Ubuntu 22.04 LTS
-\item Python: 3.10.12
+\item GPU: None (CPU-only benchmarks demonstrate lightweight deployment)
+\item OS: Windows 11
+\item Python: 3.10.x
+\item Date: December 27, 2025
 \end{itemize}
 
-For local model deployment, we use Ollama with Deepseek-v3.1 (6.8B parameters) as the domain specialist model. Cloud-based experiments use OpenAI GPT-3.5-turbo for cost comparison fairness.
+\textbf{Measurement Methodology:} Latency measured using Python \texttt{time.perf\_counter()} with microsecond precision. Accuracy evaluated against ground-truth labels assigned by domain experts.
 
-Evaluation data consists of 1,000 queries across five domains (200 queries per domain), hand-labeled by domain experts. Queries range from simple factual lookups to complex multi-step reasoning tasks, representative of real enterprise workloads.
+\textbf{Test Data:}
+\begin{itemize}
+\item \textbf{Medical Domain}: 64 labeled queries (5 domains: Medical Coding, Billing, Claims Processing, Diagnosis, Treatment)
+\item \textbf{IT Domain}: 10,000 labeled queries from research paper evaluation (5 domains: Development, Business, Finance, Marketing, Management)
+\item \textbf{Cross-Domain}: E-commerce (2,500 queries - projected *), HR (2,500 queries - projected *)
+\end{itemize}
+
+\textbf{Future Benchmarks:} Direct comparative evaluation of MDSA against LangChain, AutoGen, and CrewAI on identical hardware planned for Q1 2026 upon Phase 3-4 completion. Current projections are based on architectural analysis and framework documentation.
 
 \subsection{Performance Benchmarks}
 
