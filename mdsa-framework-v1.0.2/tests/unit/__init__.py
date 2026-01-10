@@ -1,5 +1,0 @@
-"""
-MDSA Unit Tests
-
-Contains unit tests for individual components.
-"""

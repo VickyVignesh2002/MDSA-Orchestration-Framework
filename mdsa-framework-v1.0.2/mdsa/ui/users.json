@@ -1,8 +1,0 @@
-{
-  "admin_mdsa": {
-    "id": "admin_mdsa",
-    "username": "admin_mdsa",
-    "email": "admin_mdsa@mdsa.com",
-    "password_hash": "scrypt:32768:8:1$cvEpTrvFbplwaRmi$59c47b105a79dc1255ef3916d06f0680cab5cadc5613c1bac284cb024a5ff6bf68b2e6a3a8874a81af58a1ac2c8725bc0a622db9cef75b29d69c19979fed6674"
-  }
-}

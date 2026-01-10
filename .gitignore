@@ -172,6 +172,15 @@ archive/
 # Legacy Chatbot Application (moved to examples/)
 chatbot_app/
 
+# Research Paper (unpublished, private)
+Research Paper/
+
+# Manual Test Files (development only)
+Manual Test/
+
+# Release Packages (should not be in repo)
+mdsa-framework-v*/
+
 # Manual Test Files (keep only test_all_fixes.py)
 test_*.py
 !test_all_fixes.py
