@@ -293,13 +293,9 @@
             <h2>📦 Available Models</h2>
             <div class="config-grid">
                 <div class="config-item">
-                    <label>Ollama Cloud Models</label>
-                    <ul style="font-size: 13px; color: #666; margin: 10px 0;">
-                        <li>deepseek-v3.1:671b-cloud <span class="model-badge">Large</span></li>
-                        <li>kimi-k2-thinking:cloud <span class="model-badge">Reasoning</span></li>
-                        <li>qwen3-coder:480b-cloud <span class="model-badge">Coding</span></li>
-                        <li>gpt-oss:120b-cloud <span class="model-badge">General</span></li>
-                        <li>qwen3-vl:235b-instruct-cloud <span class="model-badge">Vision</span></li>
+                    <label>Available Models (from registered apps)</label>
+                    <ul id="availableModelsList" style="font-size: 13px; color: #666; margin: 10px 0;">
+                        <li>Loading models from registered apps...</li>
                     </ul>
                 </div>
 
@@ -328,10 +324,44 @@
     <script>
         let currentConfig = {{ config_json | safe }};
         let domains = {{ domains_json | safe }};
+        let availableModels = [];
 
         document.addEventListener('DOMContentLoaded', () => {
+            loadAvailableModels();
             loadDomainModels();
         });
+
+        async function loadAvailableModels() {
+            try {
+                const response = await fetch('/api/models');
+                if (response.ok) {
+                    const data = await response.json();
+                    availableModels = data.models || [];
+                    renderAvailableModels();
+                    // Re-render domain models with updated options
+                    loadDomainModels();
+                }
+            } catch (error) {
+                console.error('Error loading models:', error);
+            }
+        }
+
+        function renderAvailableModels() {
+            const container = document.getElementById('availableModelsList');
+            if (!container) return;
+
+            if (availableModels.length === 0) {
+                container.innerHTML = '<li>No models found. Start your application to see models.</li>';
+                return;
+            }
+
+            container.innerHTML = availableModels.map(m => {
+                const name = m.model_name || m.name || m.model || m;
+                const domain = m.domain_name || m.domain || '';
+                const badge = domain ? `<span class="model-badge">${domain}</span>` : '';
+                return `<li>${name} ${badge}</li>`;
+            }).join('');
+        }
 
         function loadDomainModels() {
             const container = document.getElementById('domainModelList');
@@ -344,9 +374,9 @@
                     <h4>${domain.domain_id}</h4>
                     <div class="model-selector">
                         <select id="domain-${domain.domain_id}" data-domain="${domain.domain_id}">
-                            ${getModelOptions(domain.model_name)}
+                            ${getModelOptions(domain.model || domain.model_name)}
                         </select>
-                        <span style="color: #666; font-size: 13px;">Current: ${domain.model_name}</span>
+                        <span style="color: #666; font-size: 13px;">Current: ${domain.model || domain.model_name || 'Not configured'}</span>
                     </div>
                 `;
                 container.appendChild(item);
@@ -354,19 +384,28 @@
         }
 
         function getModelOptions(currentModel) {
-            const models = [
-                'ollama://deepseek-v3.1:671b-cloud',
-                'ollama://kimi-k2-thinking:cloud',
-                'ollama://qwen3-coder:480b-cloud',
-                'ollama://gpt-oss:120b-cloud',
-                'ollama://qwen3-vl:235b-instruct-cloud',
-                'microsoft/phi-2',
-                'custom'
-            ];
+            // Build models list dynamically from fetched models + defaults
+            let modelNames = availableModels.map(m => m.model_name || m.name || m.model || m);
 
-            return models.map(model => {
+            // Add default fallbacks if no models loaded
+            if (modelNames.length === 0) {
+                modelNames = [
+                    'ollama://llama3.2:3b',
+                    'ollama://mistral:7b',
+                    'microsoft/phi-2'
+                ];
+            }
+
+            // Add custom option
+            modelNames.push('custom');
+
+            // Remove duplicates
+            modelNames = [...new Set(modelNames)];
+
+            return modelNames.map(model => {
                 const selected = model === currentModel ? 'selected' : '';
-                return `<option value="${model}" ${selected}>${model.replace('ollama://', '')}</option>`;
+                const displayName = String(model).replace('ollama://', '');
+                return `<option value="${model}" ${selected}>${displayName}</option>`;
             }).join('');
         }
 

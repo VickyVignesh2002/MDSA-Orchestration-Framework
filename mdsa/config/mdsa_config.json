@@ -1,6 +1,7 @@
 {
-  "version": "1.0.0",
-  "last_updated": "2025-12-22T20:00:00Z",
+  "version": "1.0.6",
+  "last_updated": "2026-01-13T00:00:00Z",
+  "description": "MDSA Framework default configuration. Domains are dynamically loaded from registered applications.",
   "orchestration": {
     "orchestrator_model": "google/bert_uncased_L-2_H-128_A-2",
     "reasoning_model": "microsoft/phi-2",
@@ -16,125 +17,41 @@
       "enabled": true
     },
     "ollama_models": {
-      "deepseek-v3.1:671b-cloud": {
+      "llama3.2:3b": {
         "enabled": true,
-        "description": "Deep reasoning model",
+        "description": "Default lightweight model",
         "provider": "ollama"
       },
-      "kimi-k2-thinking:cloud": {
-        "enabled": true,
-        "description": "Thinking model",
-        "provider": "ollama"
-      },
-      "qwen3-coder:480b-cloud": {
-        "enabled": true,
-        "description": "Code analysis model",
-        "provider": "ollama"
-      },
-      "gpt-oss:120b-cloud": {
+      "mistral:7b": {
         "enabled": true,
         "description": "General purpose model",
         "provider": "ollama"
       },
-      "qwen3-vl:235b-instruct-cloud": {
+      "llama2:latest": {
         "enabled": true,
-        "description": "Vision-language model",
+        "description": "Llama 2 model",
         "provider": "ollama"
       }
     }
   },
   "domains": [
     {
-      "domain_id": "clinical_diagnosis",
-      "name": "Clinical Diagnosis",
-      "description": "Medical diagnosis and clinical decision support",
-      "model": "ollama://deepseek-v3.1:671b-cloud",
+      "domain_id": "general",
+      "name": "General Assistant",
+      "description": "Default domain for general queries when no specific domain matches",
+      "model": "ollama://llama3.2:3b",
       "keywords": [
-        "diagnosis",
-        "clinical",
-        "symptoms",
-        "disease",
-        "condition",
-        "medical history",
-        "patient",
-        "treatment",
-        "prognosis"
-      ],
-      "enabled": true,
-      "rag_enabled": true
-    },
-    {
-      "domain_id": "medical_coding",
-      "name": "Medical Coding & Billing",
-      "description": "ICD-10, CPT coding and medical billing",
-      "model": "ollama://kimi-k2-thinking:cloud",
-      "keywords": [
-        "ICD",
-        "CPT",
-        "coding",
-        "billing",
-        "insurance",
-        "claims",
-        "reimbursement",
-        "procedure code"
-      ],
-      "enabled": true,
-      "rag_enabled": true
-    },
-    {
-      "domain_id": "biomedical_text",
-      "name": "Biomedical Text Analysis",
-      "description": "Analysis of biomedical literature and research",
-      "model": "ollama://qwen3-coder:480b-cloud",
-      "keywords": [
-        "research",
-        "study",
-        "publication",
-        "abstract",
-        "biomedical",
-        "scientific",
-        "literature",
-        "analysis"
-      ],
-      "enabled": true,
-      "rag_enabled": true
-    },
-    {
-      "domain_id": "medical_qa",
-      "name": "Medical Q&A Lite",
-      "description": "General medical questions and answers",
-      "model": "ollama://gpt-oss:120b-cloud",
-      "keywords": [
-        "what is",
-        "how to",
-        "explain",
+        "help",
         "question",
-        "answer",
-        "general",
+        "explain",
+        "what",
+        "how",
+        "why",
         "information",
-        "help"
+        "general"
       ],
       "enabled": true,
-      "rag_enabled": false
-    },
-    {
-      "domain_id": "radiology",
-      "name": "Radiology Support",
-      "description": "Radiology image analysis and reporting",
-      "model": "ollama://qwen3-vl:235b-instruct-cloud",
-      "keywords": [
-        "radiology",
-        "imaging",
-        "scan",
-        "X-ray",
-        "CT",
-        "MRI",
-        "ultrasound",
-        "report",
-        "findings"
-      ],
-      "enabled": true,
-      "rag_enabled": false
+      "rag_enabled": true
     }
   ],
   "tools": [
@@ -144,7 +61,7 @@
       "description": "Get current weather data for any city using OpenWeather API",
       "endpoint": "https://api.openweathermap.org/data/2.5/weather",
       "method": "GET",
-      "enabled": true,
+      "enabled": false,
       "requires_api_key": true,
       "api_key_env_var": "OPENWEATHER_API_KEY",
       "params": {
@@ -163,24 +80,6 @@
       "enabled": false,
       "requires_api_key": true,
       "api_key_env_var": "WEB_SEARCH_API_KEY"
-    },
-    {
-      "tool_id": "drug_database",
-      "name": "Drug Database Lookup",
-      "description": "Query pharmaceutical database",
-      "endpoint": "https://api.fda.gov/drug",
-      "method": "GET",
-      "enabled": false,
-      "requires_api_key": false
-    },
-    {
-      "tool_id": "pubmed_search",
-      "name": "PubMed Literature Search",
-      "description": "Search medical literature via PubMed",
-      "endpoint": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-      "method": "GET",
-      "enabled": false,
-      "requires_api_key": false
     }
   ],
   "settings": {
@@ -189,15 +88,10 @@
     "enable_hybrid_reasoning": true,
     "default_top_k": 5,
     "auto_register_domains": true,
+    "auto_discover_app_domains": true,
     "log_level": "INFO",
     "chromadb_persist": true,
     "knowledge_base_path": "auto"
   },
-  "domain_models": {
-    "clinical_diagnosis": "ollama://qwen3-vl:235b-instruct-cloud",
-    "medical_coding": "ollama://deepseek-v3.1:671b-cloud",
-    "biomedical_text": "ollama://kimi-k2-thinking:cloud",
-    "medical_qa": "ollama://gpt-oss:120b-cloud",
-    "radiology": "ollama://kimi-k2-thinking:cloud"
-  }
+  "domain_models": {}
 }

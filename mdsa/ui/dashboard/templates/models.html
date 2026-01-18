@@ -60,9 +60,9 @@
         </div>
         {% else %}
         <div class="empty-state">
-            <p>No models loaded yet. Start a chatbot or application using MDSA to see models here.</p>
+            <p>No models loaded yet. Start an MDSA-powered application to see models here.</p>
             <p style="margin-top: 20px; color: #666;">
-                Medical Chatbot: <code>python chatbot_app/medical_app/enhanced_medical_chatbot_fixed.py</code>
+                Models are loaded from registered applications via their <code>/api/models</code> endpoint.
             </p>
         </div>
         {% endif %}
@@ -72,7 +72,7 @@
             <ul>
                 <li><strong>Tier 1 (Orchestrator):</strong> TinyBERT - Fast intent classification</li>
                 <li><strong>Tier 2 (Reasoning):</strong> Phi-2 - Complex query validation</li>
-                <li><strong>Tier 3 (Domain SLMs):</strong> Ollama Cloud - Specialized medical models</li>
+                <li><strong>Tier 3 (Domain SLMs):</strong> Ollama - Specialized domain models</li>
             </ul>
         </div>
     </div>

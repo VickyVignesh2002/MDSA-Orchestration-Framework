@@ -14,7 +14,7 @@ long_description = readme_file.read_text(encoding="utf-8") if readme_file.exists
 
 setup(
     name="mdsa",
-    version="1.0.3",
+    version="1.0.6",
     author="MDSA Team",
     author_email="your-email@example.com",
     description="Multi-Domain Small Language Model Agentic Orchestration Framework",
@@ -42,6 +42,20 @@ setup(
         "transformers>=4.30.0",
         "numpy>=1.20.0",
         "psutil>=5.8.0",
+        # Dashboard dependencies
+        "fastapi>=0.100.0",
+        "uvicorn>=0.23.0",
+        "python-dotenv>=1.0.0",
+        "requests>=2.28.0",
+        "python-jose[cryptography]>=3.3.0",
+        "cryptography>=41.0.0",
+        "python-multipart>=0.0.6",
+        # RAG dependencies
+        "chromadb>=0.4.0",
+        "sentence-transformers>=2.2.0",
+        # File parsing for RAG uploads
+        "pypdf>=4.0.0",
+        "openpyxl>=3.1.0",
     ],
     extras_require={
         "quantization": [

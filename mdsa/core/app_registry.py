@@ -10,12 +10,25 @@ control panel without framework dependencies.
 
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import requests
 
 logger = logging.getLogger(__name__)
+
+
+def _get_default_registry_path() -> str:
+    """
+    Get the default registry path in user's home directory.
+    This ensures ALL MDSA apps share the same registry regardless of working directory.
+    """
+    # Use user's home directory for shared registry
+    home = Path.home()
+    mdsa_dir = home / ".mdsa" / "registry"
+    mdsa_dir.mkdir(parents=True, exist_ok=True)
+    return str(mdsa_dir / "apps.json")
 
 
 class MDSAAppRegistry:
@@ -32,7 +45,8 @@ class MDSAAppRegistry:
             persist_path: Optional path to persist registry data (JSON file)
         """
         self.apps: Dict[str, Dict[str, Any]] = {}
-        self.persist_path = persist_path or "data/registry/apps.json"
+        # Use shared location in user's home directory by default
+        self.persist_path = persist_path or _get_default_registry_path()
 
         # Load existing registry if available
         self._load_registry()

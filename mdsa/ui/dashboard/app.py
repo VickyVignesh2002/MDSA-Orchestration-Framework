@@ -180,21 +180,10 @@ async def startup_event():
         # Initialize DualRAG system for document management
         dual_rag = DualRAG(max_global_docs=10000, max_local_docs=1000)
 
-        # Initialize RAG with medical knowledge base if available
+        # RAG system initialized - documents will be loaded from registered apps
+        # or uploaded via the dashboard. No pre-loaded knowledge base.
         rag_doc_count = 0
-        try:
-            import sys
-            kb_path = str(PROJECT_ROOT / "examples" / "medical_chatbot")
-            if kb_path not in sys.path:
-                sys.path.insert(0, kb_path)
-            from knowledge_base.enhanced_medical_kb import initialize_medical_knowledge_base
-            initialize_medical_knowledge_base(dual_rag)
-            rag_doc_count = len(dual_rag.global_rag._documents) if dual_rag.global_rag else 0
-            print(f"[OK] RAG initialized with {rag_doc_count} global documents")
-        except ImportError as e:
-            print(f"[WARN] Medical knowledge base not found: {e}")
-        except Exception as e:
-            print(f"[WARN] RAG initialization warning: {e}")
+        print(f"[OK] RAG initialized (empty - ready for document uploads)")
 
         print("[OK] MDSA orchestrator initialized")
         print("[OK] DualRAG system initialized")
@@ -872,13 +861,37 @@ async def generate_demo_data(request: Request):
     global request_history
     import random
     from datetime import datetime, timedelta
+    from mdsa.core.app_registry import get_registry
 
     try:
         # Clear existing history
         request_history.clear()
 
-        # Get domains for demo data
-        domains = ['clinical_diagnosis', 'medical_coding', 'biomedical_text', 'medical_qa', 'radiology']
+        # Dynamically get domains from registered apps
+        domains = []
+        try:
+            registry = get_registry()
+            apps = registry.list_apps()
+            for app in apps:
+                try:
+                    response = requests.get(f"{app['endpoint']}/api/domains", timeout=2)
+                    if response.status_code == 200:
+                        data = response.json()
+                        domains_data = data.get('domains', [])
+                        if isinstance(domains_data, list):
+                            domains.extend([d.get('domain_id', 'unknown') for d in domains_data if d.get('domain_id')])
+                        elif isinstance(domains_data, dict):
+                            inner = domains_data.get('domains', domains_data)
+                            if isinstance(inner, dict):
+                                domains.extend(list(inner.keys()))
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        # Fallback to generic domains if none found
+        if not domains:
+            domains = ['general', 'support', 'technical', 'analytics', 'custom']
 
         # Generate 30 sample requests over the past 24 hours
         now = datetime.now()
@@ -949,16 +962,59 @@ class ToolToggleRequest(BaseModel):
 @app.get("/api/admin/tools")
 @require_auth(redirect_to_login=False)
 async def list_tools_api(request: Request):
-    """List all tools (API endpoint)"""
+    """List all tools from local manager AND registered apps (dynamic aggregation)"""
     from mdsa.tools import get_tool_manager
+    from mdsa.core.app_registry import get_registry
 
-    tool_manager = get_tool_manager()
-    tools = tool_manager.list_tools()
+    all_tools = []
+    seen_tool_ids = set()
 
-    # Return tool data without decrypted API keys
+    # PRIORITY 1: Get tools from local ToolManager
+    try:
+        tool_manager = get_tool_manager()
+        local_tools = tool_manager.list_tools()
+        for tool in local_tools:
+            tool_dict = tool.to_dict(include_key=False)
+            tool_dict['source'] = 'dashboard'
+            tool_dict['app_name'] = 'MDSA Dashboard'
+            all_tools.append(tool_dict)
+            seen_tool_ids.add(tool.id)
+    except Exception as e:
+        print(f"[TOOLS] Error loading local tools: {e}")
+
+    # PRIORITY 2: Fetch tools from registered apps (DYNAMIC)
+    try:
+        registry = get_registry()
+        apps = registry.list_apps()
+
+        for app in apps:
+            try:
+                tools_url = f"{app['endpoint']}/api/tools"
+                response = requests.get(tools_url, timeout=2)
+                if response.status_code == 200:
+                    data = response.json()
+                    app_tools = data.get('tools', [])
+                    for tool in app_tools:
+                        tool_id = tool.get('id', tool.get('tool_id', tool.get('name', '')))
+                        if tool_id and tool_id not in seen_tool_ids:
+                            seen_tool_ids.add(tool_id)
+                            tool['source'] = 'registered_app'
+                            tool['app_name'] = app.get('name', 'Unknown App')
+                            tool['app_id'] = app.get('app_id', '')
+                            all_tools.append(tool)
+            except requests.exceptions.ConnectionError:
+                continue  # App not running
+            except requests.exceptions.Timeout:
+                continue
+            except Exception as e:
+                print(f"[TOOLS] Error fetching from {app.get('name', 'unknown')}: {e}")
+                continue
+    except Exception as e:
+        print(f"[TOOLS] Error accessing registry: {e}")
+
     return {
-        "tools": [tool.to_dict(include_key=False) for tool in tools],
-        "count": len(tools)
+        "tools": all_tools,
+        "count": len(all_tools)
     }
 
 
@@ -1193,31 +1249,65 @@ async def list_domains():
                 response = requests.get(domains_url, timeout=2)
                 if response.status_code == 200:
                     data = response.json()
-                    for domain in data.get('domains', []):
-                        domain_id = domain.get('domain_id')
-                        if domain_id and domain_id not in seen_domain_ids:
-                            seen_domain_ids.add(domain_id)
-                            all_domains.append({
-                                "domain_id": domain_id,
-                                "name": domain.get('name', domain_id.replace('_', ' ').title()),
-                                "description": domain.get('description', ''),
-                                "model": domain.get('model', ''),
-                                "keywords": domain.get('keywords', []),
-                                "enabled": domain.get('enabled', True),
-                                "rag_enabled": domain.get('rag_enabled', False),
-                                "app_name": app['name'],
-                                "app_id": app['app_id'],
-                                "source": "running_app"
-                            })
-                    logger.info(f"[API] Loaded {len(all_domains)} domains from {app['name']}")
+                    domains_data = data.get('domains', [])
+
+                    # Handle LIST format: {"domains": [{"domain_id": "x", ...}, ...]}
+                    if isinstance(domains_data, list):
+                        for domain in domains_data:
+                            domain_id = domain.get('domain_id')
+                            if domain_id and domain_id not in seen_domain_ids:
+                                seen_domain_ids.add(domain_id)
+                                all_domains.append({
+                                    "domain_id": domain_id,
+                                    "name": domain.get('name', domain.get('display_name', domain_id.replace('_', ' ').title())),
+                                    "description": domain.get('description', ''),
+                                    "model": domain.get('model', domain.get('model_name', '')),
+                                    "keywords": domain.get('keywords', []),
+                                    "enabled": domain.get('enabled', True),
+                                    "rag_enabled": domain.get('rag_enabled', domain.get('has_local_kb', False)),
+                                    "app_name": app['name'],
+                                    "app_id": app['app_id'],
+                                    "source": "running_app"
+                                })
+
+                    # Handle DICT format: {"domains": {"domain_id": {...}, ...}}
+                    # Also handles nested: {"domains": {"domains": {...}, "available_models": [...]}}
+                    elif isinstance(domains_data, dict):
+                        # Check if it's a nested structure with 'domains' inside
+                        inner_domains = domains_data.get('domains', domains_data)
+                        if isinstance(inner_domains, dict):
+                            for domain_id, domain_config in inner_domains.items():
+                                # Skip non-domain keys like 'available_models', 'configured_domains'
+                                if domain_id in ('available_models', 'configured_domains', 'count'):
+                                    continue
+                                if not isinstance(domain_config, dict):
+                                    continue
+                                if domain_id not in seen_domain_ids:
+                                    seen_domain_ids.add(domain_id)
+                                    all_domains.append({
+                                        "domain_id": domain_id,
+                                        "name": domain_config.get('display_name', domain_config.get('name', domain_id.replace('_', ' ').title())),
+                                        "description": domain_config.get('description', ''),
+                                        "model": domain_config.get('model', domain_config.get('model_name', '')),
+                                        "keywords": domain_config.get('keywords', []),
+                                        "enabled": domain_config.get('enabled', True),
+                                        "rag_enabled": domain_config.get('rag_enabled', domain_config.get('has_local_kb', False)),
+                                        "app_name": app['name'],
+                                        "app_id": app['app_id'],
+                                        "source": "running_app"
+                                    })
+
+                    if all_domains:
+                        logger.info(f"[API] Loaded {len(all_domains)} domains from {app['name']}")
             except requests.exceptions.ConnectionError:
                 continue  # App not running, silently skip
             except requests.exceptions.Timeout:
                 continue
-            except Exception:
+            except Exception as e:
+                logger.debug(f"[API] Error fetching domains from {app.get('name', 'unknown')}: {e}")
                 continue
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"[API] Error in domain discovery: {e}")
 
     # PRIORITY 2: Get domains from local orchestrator (if any registered)
     if not all_domains and mdsa_orchestrator and hasattr(mdsa_orchestrator, 'domains') and mdsa_orchestrator.domains:
@@ -1285,6 +1375,7 @@ async def list_domains():
 async def list_models():
     """List all loaded models from all MDSA apps"""
     from mdsa.core.app_registry import get_registry
+    from pathlib import Path
     import requests
 
     registry = get_registry()
@@ -1293,7 +1384,7 @@ async def list_models():
     all_models = []
     seen_models = {}
 
-    # Fetch models from each registered app
+    # PRIORITY 1: Fetch models from each registered app's /api/models endpoint
     for app in apps:
         try:
             models_url = f"{app['endpoint']}/api/models"
@@ -1302,43 +1393,117 @@ async def list_models():
                 data = response.json()
                 models = data.get('models', [])
                 for model in models:
-                    model_name = model.get('model_name', 'unknown')
-                    if model_name not in seen_models:
+                    model_name = model.get('model_name', model.get('model', 'unknown'))
+                    if model_name and model_name not in seen_models:
                         seen_models[model_name] = {
                             "model_name": model_name,
                             "device": model.get('device', 'cpu'),
-                            "domains_using": model.get('domains_using', []),
-                            "apps_using": [app['name']]
+                            "domain": model.get('domain', ''),
+                            "domains_using": model.get('domains_using', [model.get('domain', '')]),
+                            "apps_using": [app['name']],
+                            "status": model.get('status', 'active')
                         }
-                    else:
+                    elif model_name:
                         seen_models[model_name]['apps_using'].append(app['name'])
+                        if model.get('domain'):
+                            seen_models[model_name]['domains_using'].append(model.get('domain'))
         except requests.exceptions.ConnectionError:
-            # Silently skip - app not running (avoid log flooding)
-            continue
+            pass  # Silently skip - app not running
         except requests.exceptions.Timeout:
-            continue
-        except Exception as e:
-            error_key = f"models:{app['endpoint']}:{type(e).__name__}"
-            if error_key not in _connection_errors_logged:
-                logger.warning(f"Failed to fetch models from {app['name']}: {e}")
-                _connection_errors_logged.add(error_key)
-            continue
+            pass
+        except Exception:
+            pass
+
+    # PRIORITY 2: Extract models from domains endpoint if /api/models fails
+    if not seen_models:
+        for app in apps:
+            try:
+                domains_url = f"{app['endpoint']}/api/domains"
+                response = requests.get(domains_url, timeout=2)
+                if response.status_code == 200:
+                    data = response.json()
+                    domains_data = data.get('domains', {})
+
+                    # Handle nested dict format from Investment Platform
+                    if isinstance(domains_data, dict):
+                        inner_domains = domains_data.get('domains', domains_data)
+                        if isinstance(inner_domains, dict):
+                            for domain_id, config in inner_domains.items():
+                                if not isinstance(config, dict):
+                                    continue
+                                model_name = config.get('model', config.get('model_name', ''))
+                                if model_name and model_name not in seen_models:
+                                    seen_models[model_name] = {
+                                        "model_name": model_name,
+                                        "device": config.get('device', 'cpu'),
+                                        "domain": domain_id,
+                                        "domains_using": [domain_id],
+                                        "apps_using": [app['name']],
+                                        "status": "active"
+                                    }
+                                elif model_name:
+                                    seen_models[model_name]['domains_using'].append(domain_id)
+                    # Handle list format
+                    elif isinstance(domains_data, list):
+                        for domain in domains_data:
+                            model_name = domain.get('model', domain.get('model_name', ''))
+                            domain_id = domain.get('domain_id', '')
+                            if model_name and model_name not in seen_models:
+                                seen_models[model_name] = {
+                                    "model_name": model_name,
+                                    "device": domain.get('device', 'cpu'),
+                                    "domain": domain_id,
+                                    "domains_using": [domain_id],
+                                    "apps_using": [app['name']],
+                                    "status": "active"
+                                }
+                            elif model_name:
+                                seen_models[model_name]['domains_using'].append(domain_id)
+            except Exception:
+                continue
 
     all_models = list(seen_models.values())
 
-    # Fallback to local orchestrator if no apps registered
-    if not all_models and mdsa_orchestrator:
+    # PRIORITY 3: Fallback to local orchestrator if no apps registered
+    if not all_models and mdsa_orchestrator and hasattr(mdsa_orchestrator, 'domains') and mdsa_orchestrator.domains:
         seen_local = set()
-        for _, config in mdsa_orchestrator.domains.items():
-            model_name = config.get('model_name', 'unknown')
+        for domain_id, config in mdsa_orchestrator.domains.items():
+            if hasattr(config, 'model_name'):
+                model_name = getattr(config, 'model_name', 'unknown')
+            else:
+                model_name = config.get('model_name', config.get('model', 'unknown'))
             if model_name not in seen_local:
                 seen_local.add(model_name)
                 all_models.append({
                     "model_name": model_name,
-                    "device": config.get('device', 'cpu'),
-                    "domains_using": [d for d, c in mdsa_orchestrator.domains.items() if c.get('model_name') == model_name],
-                    "apps_using": ["Local Dashboard"]
+                    "device": config.get('device', 'cpu') if isinstance(config, dict) else 'cpu',
+                    "domains_using": [d for d, c in mdsa_orchestrator.domains.items()
+                                     if (c.get('model_name') if isinstance(c, dict) else getattr(c, 'model_name', '')) == model_name],
+                    "apps_using": ["Local Dashboard"],
+                    "status": "active"
                 })
+
+    # PRIORITY 4: Fallback to config file
+    if not all_models:
+        config_path = Path(__file__).parent.parent.parent / "config" / "mdsa_config.json"
+        if config_path.exists():
+            try:
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    seen_config = set()
+                    for domain in config.get('domains', []):
+                        model_name = domain.get('model', '')
+                        if model_name and model_name not in seen_config:
+                            seen_config.add(model_name)
+                            all_models.append({
+                                "model_name": model_name,
+                                "device": "cpu",
+                                "domains_using": [domain.get('domain_id', '')],
+                                "apps_using": ["MDSA Config"],
+                                "status": "configured"
+                            })
+            except Exception:
+                pass
 
     return {
         "models": all_models,
